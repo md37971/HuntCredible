@@ -1,0 +1,24 @@
+FastAPI, ultralytics, YOLO, uvicorn, python-multipart, pillow
+
+do pip install -r requirements.txt --dry-run (installs a dry run of python libraries)
+python -m venv venv - Creates a virtual environment
+
+from ai-service directory, run the command to start up the python API: 
+1) venv/Scripts/activate (activates the virtual environment)
+2) uvicorn main:app --reload (starts the FastAPI server with hot reload enabled)
+
+
+
+CLASSES OF ANIMALS
+names:
+  0: bear
+  1: boar
+  2: deer
+  3: rabbit
+  4: squirrel
+
+LIMITATIONS OF AI MODEL DURING SPRINT 1
+- YOLO may sometimes classify an image incorrectly, or not at all. This is due to the limitations of the YOLO model and the training data it was trained on. The model may not have seen enough examples of certain objects or may have been trained on biased data, leading to incorrect classifications. Additionally, YOLO may struggle with images that are too small, too large, or have poor lighting conditions.
+- YOLO may fail to recognize an animal in an image if the animal is partially obscured, too far away, or not in the center of the image. The model may also struggle with images that contain multiple animals or objects, as it may not be able to distinguish between them. Additionally, YOLO may have difficulty recognizing animals that are not commonly found in its training data, such as exotic or rare species.
+- YOLO may identify one animal as multiple animals, but this is not always the case. The model may sometimes misclassify an animal as multiple animals due to its limitations in recognizing certain features or patterns. Additionally, YOLO may struggle with images that contain multiple animals or objects, as it may not be able to distinguish between them. However, in some cases, YOLO may correctly identify one animal as multiple animals if it has been trained on enough examples of that particular animal and its features.
+- YOLO may sometimes be low confident on some images, though at rare cases.

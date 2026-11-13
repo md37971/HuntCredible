@@ -8,7 +8,7 @@ function sessionUser({passwordHash, ...user}) {
     return user;
 }
 
-router.post("/signup", async (req, res) => {
+router.post("/register", async (req, res) => {
     const { email, password, firstName, lastName } = req.body ?? {};
     if (!email || !password || !firstName || !lastName) {
         return res.status(400).json({ statusCode: 400, statusMessage: "Bad Request", content: { message: "Email, password, first name and last name are required" } });

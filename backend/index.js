@@ -5,17 +5,31 @@ import { connectDb } from './db.js';
 dotenv.config();
 
 const app = express();
+const port = process.env.PORT || "5000";
 
 app.use(express.json());
+const BASE_URL = "/api/v1";
 
-// Connect to MongoDB
-await connectDb();
-
-// Test endpoint
-app.get('/', (req, res) => {
-    res.send('Express server is running!');
+//Health Check
+app.get(`${BASE_URL}/health`, (req, res) => {
+    res.status(200).json({ 
+        status: 'OK',
+        message: 'API IS UP AND RUNNING',
+        timestamp: new Date()
+    });
 });
 
-app.listen(5000, () => {
-    console.log('Server running on port 5000');
-});
+// Starting connection
+async function startServer() {
+    try {
+        await connectDb();
+        app.listen(port, () => {
+            console.log(`Server running on localhost:${port}`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();

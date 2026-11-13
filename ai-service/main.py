@@ -5,12 +5,14 @@ from fastapi import HTTPException
 from services.prediction_service import predictImage
 from PIL import Image
 import io
+from exif import Image as exifImage
+from services.imageCoordinatesService import ImageCoordinates
 
 app = FastAPI()
 #Runs Uvicorn server on Port 8000. Link: http://127.0.0.1:8000/
 #Swagger link: http://127.0.0.1:8000/docs
 
-
+MUST_HAVE_COORDS = False  #Set to True if coordinates are required, False otherwise
 MAX_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
 ALLOWED_EXTENSIONS = {"image/jpg", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 ALLOWED_FORMATS = {"JPG","JPEG","PNG","WEBP","HEIC","HEIF"}
@@ -24,8 +26,8 @@ def health_check():
     return {"status": "healthy"}
 
 @app.post("/predict") #Predict endpoint
-async def predict_endpoint(file: UploadFile = File(...)):    
-        
+async def predict_endpoint(file: UploadFile = File(...)):   
+
         #Check if the uploaded file is an image
         if file.content_type not in ALLOWED_EXTENSIONS:
             raise HTTPException(
@@ -42,7 +44,6 @@ async def predict_endpoint(file: UploadFile = File(...)):
         if len(contents) > MAX_FILE_SIZE:
             raise HTTPException(status_code=413, message="Image exceeds 15 MB limit.")
 
-        
         #Validate actual image contents and if format is valid.
         try:
             with Image.open(io.BytesIO(contents)) as uploaded_image:
@@ -64,11 +65,23 @@ async def predict_endpoint(file: UploadFile = File(...)):
 
         try:
             detections = predictImage(image)
+            coordinateResult = ImageCoordinates(contents)
+            coordinates = coordinateResult.getCoordinates()
+
+            if(MUST_HAVE_COORDS):
+                if ((coordinates is None) or (coordinates[0] == 0 and coordinates[1] == 0)):
+                    return {
+                        "success": False,
+                        "detections": None,
+                        "coordinates": None,
+                        "message": "Image does not contain GPS coordinates. Please ensure the image has GPS metadata."
+                    }
 
             if not detections: #No animals detected.
                 return {
-                 "success": False,
+                  "success": False,
                   "detections": None,
+                  "coordinates": coordinates,
                   "message": "No animals detected in the image or animals were unclear in the image."
                 }
 
@@ -76,6 +89,7 @@ async def predict_endpoint(file: UploadFile = File(...)):
                return {
                  "success": False,
                  "detections": None,
+                 "coordinates": coordinates,
                  "message": "Multiple animals detected. Only one animal is allowed per image."
                }
 
@@ -83,8 +97,10 @@ async def predict_endpoint(file: UploadFile = File(...)):
               return {
                 "success": True,
                 "detections": detections,
+                "coordinates": coordinates,
                 "message": "An animal has been detected in the image."
               }
+
         except Exception as e:
             raise HTTPException(
                 status_code=400,

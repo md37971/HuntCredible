@@ -45,4 +45,13 @@ router.post("/logout", (req, res) => {
     });
 });
 
+router.get("/me", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ statusCode: 401, statusMessage: "Unauthorized", content: { message: "Not logged in" } });
+    }
+    const user = await getDb().collection('users').findOne({ _id: new ObjectId(req.session.user._id) });
+    req.session.user = { ...req.session.user };
+    res.json({ statusCode: 200, statusMessage: "OK", content: { user: req.session.user } });
+});
+
 export default router;

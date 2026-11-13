@@ -2,12 +2,12 @@ from ultralytics import YOLO
 import os
 from fastapi import HTTPException
 
-def viewResultsPhoto(results):
+def viewResultsPhoto(results, image_path):
     detections = []
 
     for result in results:
         for box in result.boxes:
-            print(box)
+            #print(box)
 
             #Gets Class ID Number, where this stores the animal's ID number to return its name.
             class_id = int(box.cls[0])
@@ -32,7 +32,7 @@ def viewResultsPhoto(results):
 def predictImage(imageURL):
     confidenceScore = 0.65
     runModel = model.predict(source=imageURL, show=False, conf=confidenceScore, save=False)
-    detections = viewResultsPhoto(runModel)
+    detections = viewResultsPhoto(runModel, imageURL)
    
     return detections
 

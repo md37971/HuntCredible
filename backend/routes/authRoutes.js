@@ -3,8 +3,8 @@ import bcrypt from 'bcrypt';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../db.js';
 const router = express.Router();
-    
-function sessionUser({passwordHash, ...user}) {
+
+function sessionUser({ passwordHash, ...user }) {
     return user;
 }
 
@@ -21,7 +21,7 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const now = new Date();
-    const user = {email, passwordHash, firstName, lastName, role: 'user', createdAt: now};
+    const user = { email, passwordHash, firstName, lastName, role: 'user', createdAt: now };
     const { insertedId } = await users.insertOne(user);
     req.session.user = sessionUser({ ...user, _id: insertedId });
     res.status(201).json({ statusCode: 201, statusMessage: "Created", content: { user: req.session.user } });

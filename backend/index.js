@@ -1,9 +1,12 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { connectDb } from './db.js';
+import session from 'express-session';
+
+//Importing Routers
 import authRouter from './routes/authRoutes.js';
 import exampleRouter from './routes/example.js'; //TEST ROUTE
-import session from 'express-session';
+import submissionRouter from './routes/submissionRoutes.js';
 
 dotenv.config();
 
@@ -38,6 +41,7 @@ app.get(`${BASE_URL}/health`, (req, res) => {
 //localhost:5000/api/v1/...
 app.use(`${BASE_URL}/auth`, authRouter);
 app.use(`${BASE_URL}/example`, exampleRouter); //TEST ROUTE
+app.use(`${BASE_URL}/submission`, submissionRouter);
 
 // Starting connection
 async function startServer() {

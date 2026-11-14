@@ -379,7 +379,7 @@ router.post('/:partyId/join', async (req, res) => {
     }
 });
 
-//POST /api/parties/:partyId/leave
+//POST /api/parties/:partyId/leave - Member of party leaves.
 router.post('/:partyId/leave', async (req, res) => {
     try {
         if (!req.session?.user) {
@@ -466,7 +466,7 @@ router.post('/:partyId/leave', async (req, res) => {
     }
 });
 
-//GET /api/parties/:partyId/members
+//GET /api/parties/:partyId/members - Gets the list of members inside of a party.
 router.get('/:partyId/members', async (req, res) => {
     try {
         if (!req.session?.user) {
@@ -519,7 +519,7 @@ router.get('/:partyId/members', async (req, res) => {
     }
 });
 
-//DELETE /api/parties/:partyId/members/:userId
+//DELETE /api/parties/:partyId/members/:userId - Removes members from a party if you're the owner.
 router.delete('/:partyId/members/:userId', async (req, res) => {
     try {
         if (!req.session?.user) {

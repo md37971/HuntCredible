@@ -528,7 +528,7 @@ router.put('/sessions/:sessionId/locations', async (req, res) => {
     }
 });
 
-
+//GET /sessions/:sessionId/members/:userId/locations - Request's the user's and then determine that target's users last known location. 
 router.get('/sessions/:sessionId/members/:userId/locations', async (req, res) => {
     try {
         if (!req.session?.user) { //Checks user log in.

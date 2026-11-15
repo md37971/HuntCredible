@@ -1,4 +1,4 @@
-# HuntCredible AI Service
+# HuntCredible AI Service Techinical Documentation
 
 ## Overview
 
@@ -18,6 +18,7 @@ uvicorn
 ultralytics
 python-multipart
 pillow
+exif
 ```
 
 **Library purposes:**
@@ -29,10 +30,23 @@ pillow
 | `ultralytics` | Provides the YOLO model and image prediction functionality. |
 | `python-multipart` | Allows FastAPI to receive uploaded image files. |
 | `pillow` | Opens and processes uploaded images. |
+| `exif` | Extracts metadata from an image.|
 
 Ultralytics installs its required dependencies, including PyTorch, automatically. They do not need to be listed separately unless the project later requires specific versions.
 
-## Setting Up the Python Environment
+## Starting Up Service With Docker
+
+To start the service, simply nvaigate into the main ```huntcredible``` directory and type the following command into the terminal.
+
+```
+docker compose up --build -V
+```
+
+This will setup the necessary containers for the frontend, backend, and AI services.
+
+For the AI service, Docker will automatically installed the required libraries inside the ```requirements.txt``` file.
+
+## (WITHOUT DOCKER) Setting Up the Python Environment
 
 Open a terminal in the project directory and navigate to `ai-service`.
 
@@ -145,11 +159,21 @@ The following examples describe the intended API response contract. The implemen
 When exactly one supported animal is detected, the API returns the animal's name and confidence score.
 
 ```json
-{
-  "success": true,
-  "detections": {
-    "name": "deer",
-    "confidence": 0.9231
+  "statusCode": 200,
+  "statusMessage": "OK",
+  "content": {
+    "success": true,
+    "detections": [
+      {
+        "name": "deer",
+        "confidence": "81.92%"
+      }
+    ],
+    "coordinates": [
+       12.423432,
+      -23.342343
+    ],
+    "message": "An animal has been detected in the image."
   }
 }
 ```
@@ -164,9 +188,17 @@ When no supported animals are detected, the API returns:
 
 ```json
 {
-  "success": true,
-  "detections": null,
-  "message": "No animals detected in the image."
+  "statusCode": 200,
+  "statusMessage": "OK",
+  "content": {
+    "success": false,
+    "detections": null,
+    "coordinates": [
+       12.423432,
+      -23.342343
+    ],
+    "message": "No animals detected in the image or animals were unclear in the image."
+  }
 }
 ```
 
@@ -191,6 +223,10 @@ If the model detects more than one animal, the image should be rejected.
       "confidence": 0.8872
     }
   ],
+  "coordinates": [
+       12.423432,
+      -23.342343
+    ],
   "message": "Multiple animals detected. Please upload an image containing only one animal."
 }
 ```
@@ -216,7 +252,11 @@ Example response:
 
 ```json
 {
-  "detail": "Uploaded file must be a valid image."
+  "statusCode": 400,
+  "statusMessage": "Bad Request",
+  "content": {
+    "message": "Images must be in jpeg, png, webp, heic, or heif format"
+  }
 }
 ```
 
@@ -235,7 +275,7 @@ Example response:
 
 ```json
 {
-  "detail": "AI model is currently unavailable."
+  "message": "AI model is currently unavailable."
 }
 ```
 
@@ -246,34 +286,6 @@ Expected HTTP status code:
 ```
 
 The API should remain available for health checks when possible, even if the YOLO model cannot be loaded.
-
-## Limitations of the AI Model
-
-The following limitations were observed or identified during the initial development and testing of the YOLO model.
-
-### 1. Incorrect or Missing Classifications
-
-YOLO may sometimes classify an image incorrectly or fail to recognize an animal altogether. This is due to limitations of the model and its training data. The model may not have seen enough examples of certain objects or may have been trained on biased data, leading to incorrect classifications.
-
-Additionally, YOLO may struggle with images that are too small, too large, or have poor lighting conditions.
-
-### 2. Difficulty Detecting Certain Animals
-
-YOLO may fail to recognize an animal in an image if the animal is partially obscured, too far away, or not clearly visible.
-
-The model may also struggle with images containing multiple animals or objects, as it may have difficulty distinguishing between them. Animals that are not commonly found in its training data, such as exotic or rare species, may also go unrecognized.
-
-### 3. Duplicate Animal Detections
-
-YOLO may sometimes identify one physical animal as multiple animals. This can happen because of limitations in recognizing certain features or patterns.
-
-Images containing multiple animals or objects may also make it difficult for the model to distinguish individual animals. Multiple detections do not always mean that multiple physical animals are present.
-
-### 4. Low-Confidence Predictions
-
-YOLO may occasionally return predictions with low confidence scores. This occurs less frequently but can happen when an image is unclear or the animal is difficult to identify.
-
-The confidence threshold helps filter out detections that do not meet the configured minimum confidence level.
 
 ## Additional Notes
 

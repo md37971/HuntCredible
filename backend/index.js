@@ -8,6 +8,7 @@ import authRouter from './routes/authRoutes.js';
 import exampleRouter from './routes/example.js'; //TEST ROUTE
 import submissionRouter from './routes/submissionRoutes.js';
 import partyRouter from './routes/partyRoutes.js'
+import sessionRoutes from './routes/sessionRoutes.js'
 
 dotenv.config();
 
@@ -43,7 +44,8 @@ app.get(`${BASE_URL}/health`, (req, res) => {
 app.use(`${BASE_URL}/auth`, authRouter);
 app.use(`${BASE_URL}/example`, exampleRouter); //TEST ROUTE
 app.use(`${BASE_URL}/submission`, submissionRouter);
-app.use(`${BASE_URL}/parties`, partyRouter); //TEST ROUTE
+app.use(`${BASE_URL}/parties`, partyRouter);
+app.use(BASE_URL, sessionRoutes);
 
 // Starting connection
 async function startServer() {

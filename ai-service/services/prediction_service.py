@@ -38,13 +38,9 @@ def predictImage(imageURL):
 
 #MAIN CODE
 
-try:
-    MODEL_PATH = "../models/trainedModel/weights/best.pt"
-    if(os.path.isfile(MODEL_PATH)):
-        raise FileNotFoundError()
-    model = YOLO(MODEL_PATH)
-except FileNotFoundError:
-    raise HTTPException(
-        status_code=503,
-        detail="AI Model file not found. Please ensure the model is correctly loaded."
-    )
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "trainedModel", "weights", "best.pt")
+
+if not os.path.isfile(MODEL_PATH):
+    raise RuntimeError(f"AI model file not found at {MODEL_PATH}")
+
+model = YOLO(MODEL_PATH)

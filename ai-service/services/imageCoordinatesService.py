@@ -5,7 +5,11 @@ import io
 
 class ImageCoordinates:
     def __init__(self, contents):
-        self.image = exifImage(io.BytesIO(contents))
+        try:
+            self.image = exifImage(io.BytesIO(contents))
+        except Exception as e:
+            print(f"EXIF parsing error: {e}")
+            self.image = None
         
 
     def toDecimal(self, coords, ref):
@@ -19,6 +23,9 @@ class ImageCoordinates:
         return decimal
 
     def getCoordinates(self):
+            if self.image is None:
+                return None
+
             if not self.image.has_exif:
                 print("No EXIF metadata found.")
                 return None
@@ -30,8 +37,6 @@ class ImageCoordinates:
 
                     #print(f"Coordinates: {lat}, {lon}")
                     return lat, lon
-                
-                    print("No GPS location found on this image.")
                 return None
             except Exception as e:
                 print(f"ERROR: {e}")

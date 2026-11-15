@@ -8,7 +8,6 @@ import authRouter from './routes/authRoutes.js';
 import exampleRouter from './routes/example.js'; //TEST ROUTE
 import submissionRouter from './routes/submissionRoutes.js';
 import partyRouter from './routes/partyRoutes.js'
-import session from 'express-session';
 
 dotenv.config();
 

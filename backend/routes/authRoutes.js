@@ -23,8 +23,7 @@ router.post("/register", async (req, res) => {
     const now = new Date();
     const user = { email, passwordHash, firstName, lastName, role: 'user', createdAt: now };
     const { insertedId } = await users.insertOne(user);
-    req.session.user = sessionUser({ ...user, _id: insertedId });
-    res.status(201).json({ statusCode: 201, statusMessage: "Created", content: { user: req.session.user } });
+    res.status(201).json({ statusCode: 201, statusMessage: "Created", content: { user: sessionUser({ ...user, _id: insertedId }) } })
 });
 
 router.post("/login", async (req, res) => {

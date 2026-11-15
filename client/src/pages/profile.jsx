@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
 import {
   Alert, Avatar, Badge, Button, Card, Center, Group, Loader,
   Paper, SimpleGrid, Stack, Tabs, Text, Title,
 } from '@mantine/core'
-import { getUser } from '../API/api.js'
+import { getMe } from '../API/api.js'
 
 const statLabels = [
   { key: 'challengesWon', label: 'Challenges won' },
@@ -24,7 +23,6 @@ function Empty({ children }) {
 }
 
 export default function Profile() {
-  const { userId } = useParams()
   const [profile, setProfile] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -34,21 +32,15 @@ export default function Profile() {
     setLoading(true)
     setError('')
 
-    getUser(userId)
-      .then((data) => {
-        if (!ignore) setProfile(data)
-      })
-      .catch((err) => {
-        if (!ignore) setError(err.response?.data?.message || 'Could not load profile')
-      })
-      .finally(() => {
-        if (!ignore) setLoading(false)
-      })
+    getMe()
+    .then((data) => { if (!ignore) setProfile(data.content.user) })
+    .catch((err) => { if (!ignore) setError(err.response?.data?.content?.message || 'Could not load profile') })
+    .finally(() => { if (!ignore) setLoading(false) })
 
     return () => {
       ignore = true
     }
-  }, [userId])
+  }, [])
 
   if (loading) {
     return (
@@ -67,9 +59,10 @@ export default function Profile() {
   }
 
   const {
-    name, handle, location, bio, joinedAt,
-    stats = {}, parties = [], challenges = [],
-  } = profile
+    firstName = '', lastName = '', handle, location, bio, createdAt,
+    stats = {}, parties = [], challenges = [], } = profile
+    const name = `${firstName} ${lastName}`.trim()
+    const joinedAt = createdAt
 
   return (
     <Stack maw={800} mx="auto">

@@ -609,6 +609,11 @@ router.delete('/:partyId/members/:userId', async (req, res) => {
     }
 });
 
+
+
+//PINS
+
+
 //POST /parties/:partyId/pins - Create a shared pin
 router.post("/:partyId/pins", async (req, res) => {
     try {
@@ -1063,6 +1068,180 @@ router.delete("/:partyId/pins/:pinId", async (req, res) => {
 
     } catch (error) {
         console.error("Error deleting pin:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "Server error" }
+        });
+    }
+});
+
+
+
+//MESSAGING
+
+
+//GET /parties/:partyId/messages
+router.get("/:partyId/messages", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { partyId } = req.params;
+        const userId = req.session.user._id;
+
+        // Validate party ID
+        if (!ObjectId.isValid(partyId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party ID",
+                content: { message: "Invalid party ID" }    
+            });
+        }
+
+        // Find party
+        const party = await getDb().collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check if user is a party member
+        const isMember = party.members.some(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }  
+            });
+        }
+
+        // Retrieve party messages
+        const messages = await getDb().collection("messages")
+            .find({
+                partyId: new ObjectId(partyId)
+            })
+            .sort({ createdAt: 1 })
+            .toArray();
+
+        res.status(200).json({
+            success: true,
+            data: messages
+        });
+
+    } catch (error) {
+        console.error("Error retrieving messages:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "Server error" }    
+        });
+    }
+});
+
+//POST /parties/:partyId/messages
+router.post("/:partyId/messages", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { partyId } = req.params;
+        const { content } = req.body;
+        const userId = req.session.user._id;
+
+        // Validate party ID
+        if (!ObjectId.isValid(partyId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party ID",
+                content: { message: "Invalid party ID" }    
+            });
+        }
+
+        // Validate message content
+        if (
+            typeof content !== "string" ||
+            !content.trim() ||
+            content.trim().length > 2000
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Message must contain between 1 and 2000 characters",
+                content: { message: "Message must contain between 1 and 2000 characters" }
+            });
+        }
+
+        // Find party
+        const party = await getDb().collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check if user is a party member
+        const isMember = party.members.some(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }
+            });
+        }
+
+        // Create message
+        const message = {
+            partyId: new ObjectId(partyId),
+            senderId: userId,
+            content: content.trim(),
+            createdAt: new Date()
+        };
+
+        const result = await getDb().collection("messages").insertOne(message);
+
+        // Return created message
+        res.status(201).json({
+            success: true,
+            data: {
+                messageId: result.insertedId.toString(),
+                partyId: partyId,
+                senderId: userId.toString(),
+                content: message.content,
+                createdAt: message.createdAt
+            }
+        });
+
+    } catch (error) {
+        console.error("Error sending message:", error);
 
         res.status(500).json({
             success: false,

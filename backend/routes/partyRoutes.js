@@ -609,4 +609,485 @@ router.delete('/:partyId/members/:userId', async (req, res) => {
     }
 });
 
+//POST /parties/:partyId/pins - Create a shared pin
+router.post("/:partyId/pins", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { partyId } = req.params;
+        const { sessionId, description, latitude, longitude } = req.body;
+        const userId = req.session.user._id;
+
+        // Validate IDs
+        if (!ObjectId.isValid(partyId) || !ObjectId.isValid(sessionId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party or session ID",
+                content: { message: "Party or session ID is invalid" }
+            });
+        }
+
+        // Validate pin information
+        if (
+            typeof description !== "string" ||
+            !description.trim() ||
+            typeof latitude !== "number" ||
+            typeof longitude !== "number" ||
+            latitude < -90 || latitude > 90 ||
+            longitude < -180 || longitude > 180
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid pin information",
+                content: { message: "Pin information is invalid" }
+            });
+        }
+
+        // Find party
+        const party = await getDb().collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check if user is a party member
+        const isMember = party.members.some(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }
+            });
+        }
+
+        // Make sure session belongs to this party
+        const session = await getDb().collection("sessions").findOne({
+            _id: new ObjectId(sessionId),
+            partyId: partyId
+        });
+
+        if (!session) {
+            return res.status(404).json({
+                success: false,
+                message: "Hunting session not found",
+                content: { message: "Hunting session not found" }
+            });
+        }
+
+        // Make sure the hunting session is active
+        if (session.status !== "active") {
+            return res.status(400).json({
+                success: false,
+                message: "Hunting session is not active",
+                content: { message: "Pins can only be created during an active hunting session" }
+            });
+        }
+
+        // Create pin
+        const pin = {
+            partyId: new ObjectId(partyId),
+            sessionId: new ObjectId(sessionId),
+            createdBy: userId,
+            description: description.trim(),
+            latitude,
+            longitude,
+            createdAt: new Date()
+        };
+
+
+        if (description.trim().length > 250) {
+            return res.status(400).json({
+                success: false,
+                message: "Pin description cannot exceed 250 characters"
+            });
+        }
+
+        const result = await getDb().collection("pins").insertOne(pin);
+
+        res.status(201).json({
+            success: true,
+            data: {
+                pinId: result.insertedId.toString(),
+                partyId: partyId,
+                sessionId: sessionId,
+                createdBy: userId.toString(),
+                description: pin.description,
+                latitude: pin.latitude,
+                longitude: pin.longitude,
+                createdAt: pin.createdAt
+            }
+        });
+
+    } catch (error) {
+        console.error("Error creating pin:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "An error occurred while creating the pin" }
+        });
+    }
+});
+
+//GET /parties/:partyId/pins - Retrieve all party pins
+router.get("/:partyId/pins", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { partyId } = req.params;
+        const userId = req.session.user._id;
+
+        if (!ObjectId.isValid(partyId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party ID",
+                content: { message: "Invalid party ID" }
+            });
+        }
+
+        const db = getDb();
+
+        // Find party
+        const party = await db.collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check membership
+        const isMember = party.members.some(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" } 
+            });
+        }
+
+        // Retrieve all party pins
+        const pins = await getDb().collection("pins")
+            .find({ partyId: new ObjectId(partyId) })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        res.status(200).json({
+            success: true,
+            data: pins
+        });
+
+    } catch (error) {
+        console.error("Error retrieving pins:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "An error occurred while retrieving the pins" }
+        });
+    }
+});
+
+//GET /pins/:pinId - Retrieve a specific pin
+router.get("/:partyId/pins/:pinId", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { partyId, pinId } = req.params;
+        const userId = req.session.user._id;
+
+        if (!ObjectId.isValid(partyId) || !ObjectId.isValid(pinId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party or pin ID",
+                content: { message: "Invalid party or pin ID" } 
+            });
+        }
+
+
+        // Find party
+        const party = await getDb().collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check membership
+        const isMember = party.members.some(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }
+            });
+        }
+
+        // Find pin belonging to this party
+        const pin = await getDb().collection("pins").findOne({
+            _id: new ObjectId(pinId),
+            partyId: new ObjectId(partyId)
+        });
+
+        if (!pin) {
+            return res.status(404).json({
+                success: false,
+                message: "Pin not found",
+                content: { message: "Pin not found" }
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: pin
+        });
+
+    } catch (error) {
+        console.error("Error retrieving pin:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "An error occurred while retrieving the pin" }
+        });
+    }
+});
+
+//PATCH /pins/:pinId - Update pin description
+router.patch("/:partyId/pins/:pinId", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You are not logged in" }
+            });
+        }
+
+        const { partyId, pinId } = req.params;
+        const { description } = req.body;
+        const user = req.session.user;
+        const userId = user._id;
+
+        if (!ObjectId.isValid(partyId) || !ObjectId.isValid(pinId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party or pin ID",
+                content: { message: "Invalid party or pin ID" }
+            });
+        }
+
+        if (typeof description !== "string" || !description.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Description is required",
+                content: { message: "Description is required" }
+            });
+        }
+
+        // Find party
+        const party = await getDb().collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Find pin
+        const pin = await getDb().collection("pins").findOne({
+            _id: new ObjectId(pinId),
+            partyId: new ObjectId(partyId)
+        });
+
+        if (!pin) {
+            return res.status(404).json({
+                success: false,
+                message: "Pin not found",
+                content: { message: "Pin not found" }
+            });
+        }
+
+        // Check permissions
+        const membership = party.members.find(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        const isOwner = membership?.role === "owner";
+        const isCreator = pin.createdBy.toString() === userId.toString();
+        const isAdmin = user.role === "admin";
+
+        if (!isOwner && !isCreator && !isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not have permission to edit this pin",
+                content: { message: "You do not have permission to edit this pin" }
+            });
+        }
+
+        // Update pin
+        await getDb().collection("pins").updateOne(
+            { _id: new ObjectId(pinId), partyId: new ObjectId(partyId) },
+            {
+                $set: {
+                    description: description.trim(),
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Pin updated successfully"
+        });
+
+    } catch (error) {
+        console.error("Error updating pin:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "Server error" }
+        });
+    }
+});
+
+
+//DELETE /pins/:pinId - Delete a pin
+router.delete("/:partyId/pins/:pinId", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You are not logged in" }
+            });
+        }
+
+        const { partyId, pinId } = req.params;
+        const user = req.session.user;
+        const userId = user._id;
+
+        if (!ObjectId.isValid(partyId) || !ObjectId.isValid(pinId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party or pin ID",
+                content: { message: "Invalid party or pin ID" }
+            });
+        }
+
+        const db = getDb();
+
+        // Find party
+        const party = await db.collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" } 
+            });
+        }
+
+        // Find pin
+        const pin = await db.collection("pins").findOne({
+            _id: new ObjectId(pinId),
+            partyId: new ObjectId(partyId)
+        });
+
+        if (!pin) {
+            return res.status(404).json({
+                success: false,
+                message: "Pin not found",
+                content: { message: "Pin not found" }
+            });
+        }
+
+        // Check permissions
+        const membership = party.members.find(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        const isOwner = membership?.role === "owner";
+        const isCreator = pin.createdBy.toString() === userId.toString();
+        const isAdmin = user.role === "admin";
+
+        if (!isOwner && !isCreator && !isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not have permission to delete this pin",
+                content: { message: "You do not have permission to delete this pin" }
+            });
+        }
+
+        // Delete pin
+        await db.collection("pins").deleteOne({
+            _id: new ObjectId(pinId),
+            partyId: new ObjectId(partyId)
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Pin deleted successfully"
+        });
+
+    } catch (error) {
+        console.error("Error deleting pin:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "Server error" }
+        });
+    }
+});
+
 export default router;

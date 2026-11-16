@@ -128,6 +128,44 @@ The model generates predictions containing the following information:
 
 The model may also return no detections if it cannot identify any supported animal categories within the submitted image.
 
+## Model Evaluation Experiment
+
+After running a model evaluation experiment, the results are shown below:
+
+```
+========== MODEL EVALUATION RESULTS ==========
+Model: Fine-tuned YOLO26n
+Dataset: combined_dataset/data.yaml
+Split: test
+==============================================
+Metric                    Score
+--------------------------------
+Precision               0.9012
+Recall                  0.9187
+mAP50                   0.9310
+mAP50-95                0.7485
+==============================================
+
+========== PER-CLASS RESULTS ==========
+Class            Precision     Recall      mAP50     mAP50-95
+bear                0.9369     0.9607     0.9782       0.9090
+boar                0.9386     0.9565     0.9836       0.8447
+deer                0.9234     0.8381     0.8919       0.5590
+rabbit              0.9035     0.9167     0.9333       0.6977
+squirrel            0.8035     0.9216     0.8681       0.7323
+==============================================
+```
+
+From these results, we can say the following:
+- Precision (**90.12%**): The model's detections are correct most of the time.
+- Recall (**91.87%**): The model finds most of the animals present in the test images.
+- mAP50 (**93.10%**): Strong overall detection performance when using a 0.50 IoU threshold.
+- mAP50-95 (**74.85%**): Performance decreases when stricter bounding-box overlap requirements are applied. This suggests localization accuracy has room for improvement.
+
+Suggested Conclusions:
+- Bear and boars are the strongest performing classes out of the five, with strong precision, recall, and localization results.
+- Deers will need improvement, as the recall rate is **83.61%**, meaning that it deers are missed more than other classes. Since mAP50-95 is **55.90%**, this means that the model has difficulty in producing consistently accurate bounding boxes.
+- Squirrels have a high recall, but the precision is around **80.35%**, meaning that there could be more incorrect squirrel detections than other classes.
 
 ## Failure Cases for the AI Model
 

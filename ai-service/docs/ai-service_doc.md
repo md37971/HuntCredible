@@ -37,14 +37,55 @@ This license permits the use, modification, and redistribution of licensed mater
 
 The combined dataset contains five animal categories:
 
-| Class ID | Animal Category | Image Count |Percentage |
-|---|---|---:|
-| 0 | Bear | 791 |24.44% |
-| 1 | Boar | 500 |15.45% |
-| 2 | Deer | 893 |27.59% |
-| 3 | Rabbit | 453 |13.99% |
-| 4 | Squirrel | 600 |18.53%|
-| | **Reported Total** | **3,237** | |
+<table>
+  <thead>
+    <tr>
+      <th>Class ID</th>
+      <th>Animal Category</th>
+      <th>Image Count</th>
+      <th>Percentage</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>Bear</td>
+      <td>791</td>
+      <td>24.44%</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>Boar</td>
+      <td>500</td>
+      <td>15.45%</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Deer</td>
+      <td>893</td>
+      <td>27.59%</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Rabbit</td>
+      <td>453</td>
+      <td>13.99%</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Squirrel</td>
+      <td>600</td>
+      <td>18.53%</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th colspan="2">Reported Total</th>
+      <th>3,237</th>
+      <th>100%</th>
+    </tr>
+  </tfoot>
+</table>
 
 ### Dataset Preparation and Preprocessing
 Before training, the individual datasets were combined and standardized into a unified YOLO-compatible format.

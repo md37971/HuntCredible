@@ -13,15 +13,8 @@ metrics = model.val(
     imgsz=640
 )
 
-# Display evaluation results
-"""
-print("Precision:", metrics.box.mp)
-print("Recall:", metrics.box.mr)
-print("mAP50:", metrics.box.map50)
-print("mAP50-95:", metrics.box.map)
-"""
 
-# Print formatted evaluation results
+
 print("\n========== MODEL EVALUATION RESULTS ==========")
 print("Model: Fine-tuned YOLO26n")
 print("Dataset: combined_dataset/data.yaml")

@@ -1251,4 +1251,100 @@ router.post("/:partyId/messages", async (req, res) => {
     }
 });
 
+//DELETE /messages/:messageId - Deletes a party message
+router.delete("/messages/:messageId", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { messageId } = req.params;
+        const userId = req.session.user._id;
+
+        // Validate message ID
+        if (!ObjectId.isValid(messageId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid message ID",
+                content: { message: "Invalid message ID" }
+            });
+        }
+
+        // Find the message
+        const message = await getDb().collection("messages").findOne({
+            _id: new ObjectId(messageId)
+        });
+
+        if (!message) {
+            return res.status(404).json({
+                success: false,
+                message: "Message not found",
+                content: { message: "Message not found" }
+            });
+        }
+
+        // Find the party that the message belongs to
+        const party = await getDb().collection("parties").findOne({
+            _id: message.partyId
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check if user is a party member
+        const membership = party.members.find(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!membership) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }
+            });
+        }
+
+        // Check if user created the message or owns the party
+        const isCreator = message.senderId.toString() === userId.toString();
+        const isOwner = membership.role === "owner";
+
+        if (!isCreator && !isOwner) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not have permission to delete this message",
+                content: { message: "You do not have permission to delete this message" }
+            });
+        }
+
+        // Delete the message
+        await getDb().collection("messages").deleteOne({
+            _id: new ObjectId(messageId)
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Message deleted successfully"
+        });
+
+    } catch (error) {
+        console.error("Error deleting message:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "An error occurred while deleting the message" }
+        });
+    }
+});
+
+
 export default router;

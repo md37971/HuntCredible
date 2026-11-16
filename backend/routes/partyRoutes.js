@@ -724,7 +724,7 @@ router.post("/:partyId/pins", async (req, res) => {
             data: {
                 pinId: result.insertedId.toString(),
                 partyId: partyId,
-                sessionId, sessionId,
+                sessionId: sessionId,
                 createdBy: userId.toString(),
                 description: pin.description,
                 latitude: pin.latitude,

@@ -676,9 +676,9 @@ router.post("/:partyId/pins", async (req, res) => {
         }
 
         // Make sure session belongs to this party
-        const session = await getDb().collection("huntingSessions").findOne({
+        const session = await getDb().collection("sessions").findOne({
             _id: new ObjectId(sessionId),
-            partyId: new ObjectId(partyId)
+            partyId: partyId
         });
 
         if (!session) {
@@ -686,6 +686,15 @@ router.post("/:partyId/pins", async (req, res) => {
                 success: false,
                 message: "Hunting session not found",
                 content: { message: "Hunting session not found" }
+            });
+        }
+
+        // Make sure the hunting session is active
+        if (session.status !== "active") {
+            return res.status(400).json({
+                success: false,
+                message: "Hunting session is not active",
+                content: { message: "Pins can only be created during an active hunting session" }
             });
         }
 
@@ -700,6 +709,14 @@ router.post("/:partyId/pins", async (req, res) => {
             createdAt: new Date()
         };
 
+
+        if (description.trim().length > 250) {
+            return res.status(400).json({
+                success: false,
+                message: "Pin description cannot exceed 250 characters"
+            });
+        }
+
         const result = await getDb().collection("pins").insertOne(pin);
 
         res.status(201).json({
@@ -707,6 +724,7 @@ router.post("/:partyId/pins", async (req, res) => {
             data: {
                 pinId: result.insertedId.toString(),
                 partyId: partyId,
+                sessionId, sessionId,
                 createdBy: userId.toString(),
                 description: pin.description,
                 latitude: pin.latitude,

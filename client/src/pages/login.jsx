@@ -56,7 +56,7 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <Stack>
             <Title order={3} ta="center">
-              {isRegister ? 'Create account' : 'Welcome back'}
+              {isRegister ? 'Create account' : 'HuntCredible'}
             </Title>
 
             <SegmentedControl

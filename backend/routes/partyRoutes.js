@@ -357,6 +357,12 @@ router.delete('/:partyId', async (req, res) => {
 });
 
 //POST /api/parties/:partyId/join - User joins a party.
+/*
+PAYLOAD BODY
+{
+    "inviteCode": "insertCodeGeneratedHere"
+}
+*/
 router.post('/:partyId/join', async (req, res) => {
     try {
         if (!req.session?.user) {

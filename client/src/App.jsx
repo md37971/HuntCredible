@@ -1,15 +1,43 @@
+import { useEffect, useState } from 'react'
 import { AppShell, Burger, Group, NavLink, Title, Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { Link, Outlet, useLocation } from 'react-router'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router'
+import { getMe, logout } from './API/api.js'
+import UserMenu from './components/userMenu.jsx'
 
 const links = [
   { label: 'Home', to: '/' },
-  { label: 'Profile', to: '/profile' },
+  { label: 'Parties', to: '/parties'},
+  { label: 'Hunting Sessions', to: './sessions'}
 ]
 
 export default function App() {
   const [opened, { toggle, close }] = useDisclosure()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+
+  const [user, setUser] = useState(null)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    let ignore = false
+
+    getMe()
+      .then((data) => { if (!ignore) setUser(data.content.user) })
+      .catch(() => { })
+      .finally(() => { if (!ignore) setChecked(true) })
+
+    return () => { ignore = true }
+  }, [])
+
+  async function handleLogout() {
+    try {
+      await logout()
+    } finally {
+      setUser(null)
+      navigate('/login', { replace: true })
+    }
+  }
 
   return (
     <AppShell
@@ -23,9 +51,13 @@ export default function App() {
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
             <Title order={4}>HuntCredible</Title>
           </Group>
-          <Button component={Link} to="/login" variant="default">
-            Login
-          </Button>
+          {checked && (user
+            ? <UserMenu user={user} onLogout={handleLogout} />
+            : (
+              <Button component={Link} to="/login" variant="default">
+                Login
+              </Button>
+            ))}
         </Group>
       </AppShell.Header>
       <AppShell.Navbar p="md">
@@ -35,7 +67,6 @@ export default function App() {
             label={link.label}
             component={Link}
             to={link.to}
-            active={pathname === link.to}
             onClick={close}
           />
         ))}

@@ -69,7 +69,7 @@ export default function Profile() {
       <Card withBorder padding="lg">
         <Group justify="space-between" align="flex-start">
           <Group>
-            <Avatar size={80} radius="xl" color="indigo">
+            <Avatar size={80} radius="xl" color="initials" name={name}>
               {initials(name)}
             </Avatar>
             <div>

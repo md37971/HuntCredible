@@ -3,6 +3,53 @@ import { getDb } from '../db.js';
 import { ObjectId } from 'mongodb';
 const router = express.Router();
 
+/////////// TEMP TEMP TEMP ///////////
+router.get('/discover', async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                statusCode: 401,
+                statusMessage: "Unauthorized",
+                content: { message: "You must be logged in to view parties" }
+            });
+        }
+
+        const userId = req.session.user._id;
+
+        // Only public details: no member IDs, just a count
+        const parties = await getDb()
+            .collection('parties')
+            .aggregate([
+                { $match: { "members.userId": { $ne: userId } } },
+                {
+                    $project: {
+                        name: 1,
+                        description: 1,
+                        createdAt: 1,
+                        memberCount: { $size: { $ifNull: ["$members", []] } }
+                    }
+                },
+                { $sort: { createdAt: -1 } },
+                { $limit: 100 }
+            ])
+            .toArray();
+
+        return res.status(200).json({
+            success: true,
+            data: parties
+        });
+
+    } catch (error) {
+        console.error("Error retrieving parties to join:", error);
+
+        return res.status(500).json({
+            statusCode: 500,
+            statusMessage: "Internal Server Error",
+            content: { message: "Failed to retrieve parties" }
+        });
+    }
+});
+
 // POST /api/v1/parties
 router.post('/', async (req, res) => {
     try {

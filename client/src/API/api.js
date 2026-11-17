@@ -64,6 +64,11 @@ export async function getPartyMembers(partyId) {
     return data.data
 }
 
+export async function joinParty(inviteCode) {
+  const { data } = await api.post('/parties/join', { inviteCode })
+  return data.data
+}
+
 //////////////// Session Functions //////////////////
 
 export async function getActiveSession(partyId) {
@@ -110,6 +115,22 @@ export async function discoverParties() {
   return data.data
 }
 
-export async function joinParty(partyId) {
-  await api.post(`/parties/${partyId}/join`)
+//////////////// Pin Functions //////////////////
+
+export async function getPins(partyId) {
+  const { data } = await api.get(`/parties/${partyId}/pins`)
+  return data.data
+}
+
+export async function createPin(partyId, { sessionId, description, latitude, longitude }) {
+  const { data } = await api.post(`/parties/${partyId}/pins`, { sessionId, description, latitude, longitude })
+  return data.data
+}
+
+export async function updatePin(partyId, pinId, description) {
+  await api.patch(`/parties/${partyId}/pins/${pinId}`, { description })
+}
+
+export async function deletePin(partyId, pinId) {
+  await api.delete(`/parties/${partyId}/pins/${pinId}`)
 }

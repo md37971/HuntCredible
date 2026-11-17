@@ -6,7 +6,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  createParty, discoverParties, errorMessage, getMe, getParties, joinParty,
+  createParty, errorMessage, getMe, getParties, joinParty,
 } from '../API/api.js'
 
 const myRole = (party, me) =>
@@ -21,9 +21,8 @@ export default function Parties() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const [others, setOthers] = useState([])
-  const [othersError, setOthersError] = useState('')
-  const [joiningId, setJoiningId] = useState(null)
+  const [code, setCode] = useState('')
+  const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState('')
 
   const [opened, { open, close }] = useDisclosure()
@@ -34,15 +33,11 @@ export default function Parties() {
   useEffect(() => {
     let ignore = false
 
-    const browse = discoverParties().catch((err) => ({ failed: err }))
-
-    Promise.all([getMe(), getParties(), browse])
-      .then(([meRes, list, all]) => {
+    Promise.all([getMe(), getParties()])
+      .then(([meRes, list]) => {
         if (ignore) return
         setMe(meRes.content.user)
         setParties(list)
-        if (all.failed) setOthersError(errorMessage(all.failed, "Couldn't load other parties"))
-        else setOthers(all)
       })
       .catch((err) => { if (!ignore) setError(errorMessage(err, 'Could not load parties')) })
       .finally(() => { if (!ignore) setLoading(false) })
@@ -63,19 +58,21 @@ export default function Parties() {
     }
   }
 
-  async function handleJoin(partyId) {
-    setJoiningId(partyId)
+  async function handleJoin(e) {
+    e.preventDefault()
+    setJoining(true)
     setJoinError('')
     try {
-      await joinParty(partyId)
+      const { partyId } = await joinParty(code.trim())
       navigate(`/parties/${partyId}`)
     } catch (err) {
-      if (err.response?.status === 409) {
-        navigate(`/parties/${partyId}`)
+      const existingId = err.response?.data?.data?.partyId
+      if (err.response?.status === 409 && existingId) {
+        navigate(`/parties/${existingId}`)
         return
       }
       setJoinError(errorMessage(err, 'Could not join that party'))
-      setJoiningId(null)
+      setJoining(false)
     }
   }
 
@@ -89,13 +86,39 @@ export default function Parties() {
 
   return (
     <Stack maw={800} mx="auto">
-      <Group justify="space-between">
+      <Paper withBorder p="md">
+        <form onSubmit={handleJoin}>
+          <Stack gap="xs">
+            <Title order={4}>Join a party</Title>
+            <Text size="sm" c="dimmed">Code provided from the party leader.</Text>
+            <Group align="flex-start" wrap="nowrap">
+              <TextInput
+                placeholder="e.g. 3FA9C1B2"
+                value={code}
+                onChange={(e) => {
+                  setCode(e.currentTarget.value.toUpperCase())
+                  setJoinError('')
+                }}
+                maxLength={8}
+                ff="monospace"
+                error={joinError}
+                style={{ flex: 1 }}
+              />
+              <Button type="submit" loading={joining} disabled={!code.trim()}>
+                Join
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Paper>
+
+      <Group justify="space-between" mt="md">
         <Title order={2}>My Parties</Title>
         <Button onClick={open}>Create party</Button>
       </Group>
 
       {parties.length === 0 && (
-        <Text c="dimmed">You're not in any parties yet. Create one or join one below.</Text>
+        <Text c="dimmed">You're not in any parties yet. Create one or join with a code above.</Text>
       )}
 
       {parties.map((party) => {
@@ -122,34 +145,6 @@ export default function Parties() {
           </Paper>
         )
       })}
-
-      <Title order={3} mt="lg">All Parties</Title>
-
-      {joinError && <Alert color="red" variant="light">{joinError}</Alert>}
-      {othersError && <Text size="sm" c="dimmed">{othersError}</Text>}
-      {!othersError && others.length === 0 && (
-        <Text size="sm" c="dimmed">No other parties to join yet.</Text>
-      )}
-
-      {others.map((party) => (
-        <Paper key={party._id} withBorder p="md">
-          <Group justify="space-between" wrap="nowrap">
-            <div>
-              <Text fw={500}>{party.name}</Text>
-              {party.description && <Text size="sm" c="dimmed" lineClamp={1}>{party.description}</Text>}
-              <Text size="sm" c="dimmed">{memberLabel(party.memberCount ?? 0)}</Text>
-            </div>
-            <Button
-              variant="default"
-              loading={joiningId === party._id}
-              disabled={joiningId !== null && joiningId !== party._id}
-              onClick={() => handleJoin(party._id)}
-            >
-              Join
-            </Button>
-          </Group>
-        </Paper>
-      ))}
 
       <Modal opened={opened} onClose={close} title="Create party" centered>
         <form onSubmit={handleCreate}>

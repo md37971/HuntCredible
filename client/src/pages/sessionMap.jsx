@@ -6,7 +6,8 @@ import 'leaflet/dist/leaflet.css'
 import {
   Alert, Box, Grid, Group, Paper, Stack, Switch, Text, UnstyledButton,
 } from '@mantine/core'
-import { errorMessage, getSessionLocations } from '../API/api.js'
+import { errorMessage, getSessionLocations, getPartyMembers } from '../API/api.js'
+import {useParams } from 'react-router'
 
 const POLL_MS = 5000
 const STALE_MS = 2 * 60 * 1000 
@@ -64,18 +65,26 @@ export default function SessionMap() {
     session, me, isActive, sharing, setSharing, myPosition, lastSentAt, shareError,
   } = useOutletContext()
 
+  const { partyId } = useParams()
+  const [partyMembers, setPartyMembers] = useState([])
   const [locations, setLocations] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [now, setNow] = useState(() => Date.now())
   const [focus, setFocus] = useState(null)
 
+    useEffect(() => {
+        getPartyMembers(partyId)
+            .then((members) => setPartyMembers(members))
+            .catch((err) => console.error('Could not load party members:', err))
+    }, [partyId])
+
   useEffect(() => {
     let ignore = false
 
     async function load() {
       try {
-        const data = await getSessionLocations(session._id)
+          const data = await getSessionLocations(session._id)
         if (ignore) return
         setLocations(data)
         setLoadError('')
@@ -94,20 +103,23 @@ export default function SessionMap() {
 
   const people = locations
     .filter((l) => typeof l.latitude === 'number' && typeof l.longitude === 'number')
-    .map((l) => {
-      const isMe = sameId(l.userId, me._id)
-      const updated = new Date(l.lastUpdated).getTime()
-      return {
-        id: String(l.userId),
-        isMe,
-        named: isMe,
-        name: isMe ? fullName(me) : shortId(l.userId),
-        latitude: l.latitude,
-        longitude: l.longitude,
-        updated,
-        stale: now - updated > STALE_MS,
-      }
-    })
+      .map((l) => {
+          const isMe = sameId(l.userId, me._id)
+          const updated = new Date(l.lastUpdated).getTime()
+
+          return {
+              id: String(l.userId),
+              isMe,
+              named: true,
+              name: isMe
+                  ? fullName(me)
+                  : `${l.firstName ?? ''} ${l.lastName ?? ''}`.trim() || shortId(l.userId),
+              latitude: l.latitude,
+              longitude: l.longitude,
+              updated,
+              stale: now - updated > STALE_MS,
+          }
+      })
 
   if (isActive && sharing && myPosition) {
     const mine = {
@@ -223,14 +235,25 @@ export default function SessionMap() {
                 </Paper>
               </UnstyledButton>
             ))}
+                {notSharing.map((id) => {
+                  const member = partyMembers.find(
+                    (m) => sameId(m.userId, id)
+                  )
 
-            {notSharing.map((id) => (
-              <Paper key={id} withBorder p="xs">
-                <Text size="sm" c="dimmed">
-                  {sameId(id, me._id) ? `${fullName(me)} (you)` : shortId(id)} · not sharing
-                </Text>
-              </Paper>
-            ))}
+                  const name = sameId(id, me._id)
+                    ? `${fullName(me)} (you)`
+                    : member
+                      ? `${member.firstName} ${member.lastName}`
+                      : shortId(id)
+
+                  return (
+                    <Paper key={id} withBorder p="xs">
+                      <Text size="sm" c="dimmed">
+                        {name} · not sharing
+                      </Text>
+                    </Paper>
+                  )
+                })}
 
             {loaded && people.length === 0 && notSharing.length === 0 && (
               <Text size="sm" c="dimmed">No one is sharing a location yet.</Text>

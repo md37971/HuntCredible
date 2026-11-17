@@ -102,18 +102,25 @@ export default function SessionLive() {
     setSharing(on)
   }
 
-  async function handleEnd() {
-    setEnding(true)
-    setEndError('')
-    try {
-      setSession(await endSession(sessionId))
-      setConfirmOpen(false)
-    } catch (err) {
-      setEndError(errorMessage(err, 'Could not end the session'))
-    } finally {
-      setEnding(false)
+    async function handleEnd() {
+        setEnding(true)
+        setEndError('')
+
+        try {
+            await endSession(sessionId)
+
+            setSession((prev) => ({
+                ...prev,
+                status: 'ended'
+            }))
+
+            setConfirmOpen(false)
+        } catch (err) {
+            setEndError(errorMessage(err, 'Could not end the session'))
+        } finally {
+            setEnding(false)
+        }
     }
-  }
 
   const backLink = (
     <Button component={Link} to="/sessions" variant="subtle" w="fit-content" px={0}>

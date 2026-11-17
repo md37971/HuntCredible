@@ -4,52 +4,6 @@ import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
 const router = express.Router();
 
-/////////// TEMP TEMP TEMP ///////////
-router.get('/discover', async (req, res) => {
-    try {
-        if (!req.session?.user) {
-            return res.status(401).json({
-                statusCode: 401,
-                statusMessage: "Unauthorized",
-                content: { message: "You must be logged in to view parties" }
-            });
-        }
-
-        const userId = req.session.user._id;
-
-        // Only public details: no member IDs, just a count
-        const parties = await getDb()
-            .collection('parties')
-            .aggregate([
-                { $match: { "members.userId": { $ne: userId } } },
-                {
-                    $project: {
-                        name: 1,
-                        description: 1,
-                        createdAt: 1,
-                        memberCount: { $size: { $ifNull: ["$members", []] } }
-                    }
-                },
-                { $sort: { createdAt: -1 } },
-                { $limit: 100 }
-            ])
-            .toArray();
-
-        return res.status(200).json({
-            success: true,
-            data: parties
-        });
-
-    } catch (error) {
-        console.error("Error retrieving parties to join:", error);
-
-        return res.status(500).json({
-            statusCode: 500,
-            statusMessage: "Internal Server Error",
-            content: { message: "Failed to retrieve parties" }
-        });
-    }
-});
 
 // POST /api/v1/parties
 router.post('/', async (req, res) => {
@@ -723,6 +677,78 @@ router.delete('/:partyId/members/:userId', async (req, res) => {
         });
     }
 });
+
+//Join party off of code
+router.post('/join', async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                statusCode: 401,
+                statusMessage: "Unauthorized",
+                content: { message: "You must be logged in" }
+            })
+        }
+
+        const { inviteCode } = req.body ?? {}
+
+        if (typeof inviteCode !== 'string' || !inviteCode.trim()) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusMessage: "Bad Request",
+                content: { message: "Invite code is required" }
+            })
+        }
+
+        const userId = req.session.user._id
+        const parties = getDb().collection('parties')
+
+        const party = await parties.findOne({ inviteCode: inviteCode.trim().toUpperCase() })
+
+        if (!party) {
+            return res.status(404).json({
+                statusCode: 404,
+                statusMessage: "Not Found",
+                content: { message: "Invalid invite code" }
+            })
+        }
+
+        if (party.members.some((member) => member.userId.toString() === userId.toString())) {
+            return res.status(409).json({
+                statusCode: 409,
+                statusMessage: "Conflict",
+                content: { message: "You are already a member of this party" },
+                data: { partyId: party._id }
+            })
+        }
+
+        await parties.updateOne(
+            { _id: party._id, "members.userId": { $ne: userId } },
+            {
+                $push: {
+                    members: {
+                        userId: userId,
+                        joinedAt: new Date(),
+                        role: "member"
+                    }
+                }
+            }
+        )
+
+        return res.status(200).json({
+            success: true,
+            data: { partyId: party._id, message: "Joined party successfully" }
+        })
+
+    } catch (error) {
+        console.error("Error joining party by code:", error)
+
+        return res.status(500).json({
+            statusCode: 500,
+            statusMessage: "Internal Server Error",
+            content: { message: "Failed to join party" }
+        })
+    }
+})
 
 //POST /parties/:partyId/pins - Create a shared pin
 router.post("/:partyId/pins", async (req, res) => {

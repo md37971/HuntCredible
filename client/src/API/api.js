@@ -64,6 +64,11 @@ export async function getPartyMembers(partyId) {
     return data.data
 }
 
+export async function joinParty(inviteCode) {
+  const { data } = await api.post('/parties/join', { inviteCode })
+  return data.data
+}
+
 //////////////// Session Functions //////////////////
 
 export async function getActiveSession(partyId) {
@@ -108,8 +113,4 @@ export async function updateMyLocation(sessionId, { latitude, longitude }) {
 export async function discoverParties() {
   const { data } = await api.get('/parties/discover')
   return data.data
-}
-
-export async function joinParty(partyId) {
-  await api.post(`/parties/${partyId}/join`)
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import {
   Alert, Avatar, Badge, Button, Card, Center, Group, Loader,
-  Modal, Paper, Stack, Text, Title,
+  Modal, Paper, Stack, Text, Title, Code, CopyButton
 } from '@mantine/core'
 import {
   deleteParty, errorMessage, getMe, getParty, getPartyMembers ,leaveParty, removeMember,
@@ -146,6 +146,24 @@ export default function PartyDetail() {
             <Text size="sm" c="dimmed" mt="xs">
               {members.length} {members.length === 1 ? 'member' : 'members'} · Created {formatDate(party.createdAt)}
             </Text>
+            {isLeader && party.inviteCode && (
+              <Group gap="xs" mt="sm">
+                <Text size="sm" c="dimmed">Invite code:</Text>
+                <Code fz="sm">{party.inviteCode}</Code>
+                <CopyButton value={party.inviteCode} timeout={2000}>
+                  {({ copied, copy }) => (
+                    <Button
+                      size="compact-xs"
+                      variant="light"
+                      color={copied ? 'teal' : undefined}
+                      onClick={copy}
+                    >
+                      {copied ? 'Copied' : 'Copy'}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Group>
+            )}
           </div>
           {isLeader
             ? <Button color="red" variant="light" onClick={destroy}>Delete party</Button>

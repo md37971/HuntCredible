@@ -100,3 +100,11 @@ export async function updateMyLocation(sessionId, { latitude, longitude }) {
   const { data } = await api.put(`/sessions/${sessionId}/locations`, { latitude, longitude })
   return data.data
 }
+export async function discoverParties() {
+  const { data } = await api.get('/parties/discover')
+  return data.data
+}
+
+export async function joinParty(partyId) {
+  await api.post(`/parties/${partyId}/join`)
+}

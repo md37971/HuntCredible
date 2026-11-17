@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router'
-import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { LayersControl, MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
@@ -161,12 +161,34 @@ export default function SessionMap() {
               center={DEFAULT_CENTER}
               zoom={4}
               scrollWheelZoom
+              maxZoom={19}
               style={{ height: 'min(60vh, 560px)', minHeight: 320 }}
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+                            <LayersControl position="topright">
+                <LayersControl.BaseLayer checked name="Topo">
+                  <TileLayer
+                    attribution='Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Style &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                    maxNativeZoom={17}
+                    maxZoom={19}
+                  />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer name="USGS Topo (US only)">
+                  <TileLayer
+                    attribution='Tiles courtesy of the <a href="https://www.usgs.gov/">U.S. Geological Survey</a>'
+                    url="https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}"
+                    maxNativeZoom={16}
+                    maxZoom={19}
+                  />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer name="Street">
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    maxZoom={19}
+                  />
+                </LayersControl.BaseLayer>
+              </LayersControl>
               {people.map((p) => (
                 <Marker key={p.id} position={[p.latitude, p.longitude]} icon={pin(pinLabel(p), colorOf(p))}>
                   <Tooltip direction="top" offset={[0, -16]}>

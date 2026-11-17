@@ -59,6 +59,11 @@ export async function removeMember(partyId, userId) {
   await api.delete(`/parties/${partyId}/members/${userId}`)
 }
 
+export async function getPartyMembers(partyId) {
+    const { data } = await api.get(`/parties/${partyId}/members`)
+    return data.data
+}
+
 //////////////// Session Functions //////////////////
 
 export async function getActiveSession(partyId) {

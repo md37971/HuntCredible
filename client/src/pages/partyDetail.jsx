@@ -5,16 +5,15 @@ import {
   Modal, Paper, Stack, Text, Title,
 } from '@mantine/core'
 import {
-  deleteParty, errorMessage, getMe, getParty, leaveParty, removeMember,
+  deleteParty, errorMessage, getMe, getParty, getPartyMembers ,leaveParty, removeMember,
 } from '../API/api.js'
 
 const sameId = (a, b) => String(a) === String(b)
 
-const memberName = (m, me) => {
-  const person = m.firstName ? m : sameId(m.userId, me?._id) ? me : null
-  return person
-    ? `${person.firstName} ${person.lastName ?? ''}`.trim()
-    : `User …${String(m.userId).slice(-6)}`
+const memberName = (m) => {
+    console.log("Member object:", m);
+
+    return `${m.firstName ?? 'Unknown'} ${m.lastName ?? 'User'}`.trim();
 }
 
 const formatDate = (iso) =>
@@ -32,20 +31,39 @@ export default function PartyDetail() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
 
-  useEffect(() => {
-    let ignore = false
+    useEffect(() => {
+        let ignore = false
 
-    Promise.all([getMe(), getParty(partyId)])
-      .then(([meRes, data]) => {
-        if (ignore) return
-        setMe(meRes.content.user)
-        setParty(data)
-      })
-      .catch((err) => { if (!ignore) setError(errorMessage(err, 'Could not load party')) })
-      .finally(() => { if (!ignore) setLoading(false) })
+        Promise.all([
+            getMe(),
+            getParty(partyId),
+            getPartyMembers(partyId)
+        ])
+            .then(([meRes, data, members]) => {
+                if (ignore) return
 
-    return () => { ignore = true }
-  }, [partyId])
+                setMe(meRes.content.user)
+
+                setParty({
+                    ...data,
+                    members: members
+                })
+            })
+            .catch((err) => {
+                if (!ignore) {
+                    setError(errorMessage(err, 'Could not load party'))
+                }
+            })
+            .finally(() => {
+                if (!ignore) {
+                    setLoading(false)
+                }
+            })
+
+        return () => {
+            ignore = true
+        }
+    }, [partyId])
 
   function ask(dialog) {
     setActionError('')

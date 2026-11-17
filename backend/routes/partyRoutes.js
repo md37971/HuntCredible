@@ -1,6 +1,7 @@
 import express from "express"
 import { getDb } from '../db.js';
 import { ObjectId } from 'mongodb';
+import crypto from 'crypto';
 const router = express.Router();
 
 /////////// TEMP TEMP TEMP ///////////
@@ -72,10 +73,22 @@ router.post('/', async (req, res) => {
         }
 
         const userId = req.session.user._id;
+        const db = getDb();
+        const parties = db.collection("parties");
+
+        //Generate a code, and loop through the DB to check it's unused.
+        let inviteCode;
+        let codeExists = true;
+
+        while (codeExists) {
+            inviteCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+            codeExists = await parties.findOne({ inviteCode });
+        }
 
         const party = {
             name: name.trim(),
             description: description?.trim() ?? "",
+            inviteCode: inviteCode,
             createdBy: userId,
             members: [
                 {
@@ -94,6 +107,7 @@ router.post('/', async (req, res) => {
             data: {
                 partyId: result.insertedId,
                 name: party.name,
+                inviteCode: party.inviteCode,
                 createdBy: userId,
                 members: [userId]
             }
@@ -370,6 +384,7 @@ router.post('/:partyId/join', async (req, res) => {
         //Get the party document and finds the exact party ID.
         const parties = getDb().collection('parties');
         const objectPartyId = new ObjectId(partyId);
+        const { inviteCode } = req.body ?? {};
 
         const party = await parties.findOne({
             _id: objectPartyId
@@ -382,6 +397,24 @@ router.post('/:partyId/join', async (req, res) => {
                 content: { message: "Party not found" }
             });
         }
+
+
+        if (!inviteCode || !inviteCode.trim()) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusMessage: "Bad Request",
+                content: { message: "Invite code is required" }
+            });
+        }
+
+        if (party.inviteCode != inviteCode.trim().toUpperCase()) {
+            return res.status(403).json({
+                statusCode: 403,
+                statusMessage: "Forbidden",
+                content: { message: "Invalid invite code" }
+            });
+        }
+
 
         if (party.members.some(member =>
             member.userId.toString() === userId.toString()
@@ -535,7 +568,7 @@ router.get('/:partyId/members', async (req, res) => {
             });
         }
 
-        //Finds the party from the collections to select.
+        // Find the party.
         const party = await getDb().collection('parties').findOne({
             _id: new ObjectId(partyId),
             "members.userId": userId
@@ -549,10 +582,39 @@ router.get('/:partyId/members', async (req, res) => {
             });
         }
 
-        //Returns the full list of objectID members.
+        // Get all member IDs and convert them to ObjectIds.
+        const memberIds = party.members.map(member =>
+            new ObjectId(member.userId)
+        );
+
+        // Retrieve member names from the users collection.
+        const users = await getDb().collection('users').find(
+            { _id: { $in: memberIds } },
+            {
+                projection: {
+                    firstName: 1,
+                    lastName: 1
+                }
+            }
+        ).toArray();
+
+        // Combine party member information with user names from the user collection.
+        const members = party.members.map(member => {
+            const user = users.find(
+                u => u._id.toString() === member.userId
+            );
+
+            return {
+                ...member,
+                firstName: user?.firstName || "Unknown",
+                lastName: user?.lastName || "User"
+            };
+        });
+
+        // Return the members with their names.
         return res.status(200).json({
             success: true,
-            data: party.members
+            data: members
         });
 
     } catch (error) {

@@ -678,6 +678,10 @@ router.delete('/:partyId/members/:userId', async (req, res) => {
     }
 });
 
+
+
+//PINS
+
 //Join party off of code
 router.post('/join', async (req, res) => {
     try {
@@ -1230,5 +1234,275 @@ router.delete("/:partyId/pins/:pinId", async (req, res) => {
         });
     }
 });
+
+
+
+//MESSAGING
+
+
+//GET /parties/:partyId/messages
+router.get("/:partyId/messages", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { partyId } = req.params;
+        const userId = req.session.user._id;
+
+        // Validate party ID
+        if (!ObjectId.isValid(partyId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party ID",
+                content: { message: "Invalid party ID" }    
+            });
+        }
+
+        // Find party
+        const party = await getDb().collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check if user is a party member
+        const isMember = party.members.some(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }  
+            });
+        }
+
+        // Retrieve party messages
+        const messages = await getDb().collection("messages")
+            .find({
+                partyId: new ObjectId(partyId)
+            })
+            .sort({ createdAt: 1 })
+            .toArray();
+
+        res.status(200).json({
+            success: true,
+            data: messages
+        });
+
+    } catch (error) {
+        console.error("Error retrieving messages:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "Server error" }    
+        });
+    }
+});
+
+//POST /parties/:partyId/messages
+router.post("/:partyId/messages", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { partyId } = req.params;
+        const { content } = req.body;
+        const userId = req.session.user._id;
+
+        // Validate party ID
+        if (!ObjectId.isValid(partyId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid party ID",
+                content: { message: "Invalid party ID" }    
+            });
+        }
+
+        // Validate message content
+        if (
+            typeof content !== "string" ||
+            !content.trim() ||
+            content.trim().length > 2000
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Message must contain between 1 and 2000 characters",
+                content: { message: "Message must contain between 1 and 2000 characters" }
+            });
+        }
+
+        // Find party
+        const party = await getDb().collection("parties").findOne({
+            _id: new ObjectId(partyId)
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check if user is a party member
+        const isMember = party.members.some(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }
+            });
+        }
+
+        // Create message
+        const message = {
+            partyId: new ObjectId(partyId),
+            senderId: userId,
+            content: content.trim(),
+            createdAt: new Date()
+        };
+
+        const result = await getDb().collection("messages").insertOne(message);
+
+        // Return created message
+        res.status(201).json({
+            success: true,
+            data: {
+                messageId: result.insertedId.toString(),
+                partyId: partyId,
+                senderId: userId.toString(),
+                content: message.content,
+                createdAt: message.createdAt
+            }
+        });
+
+    } catch (error) {
+        console.error("Error sending message:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "Server error" }
+        });
+    }
+});
+
+//DELETE /messages/:messageId - Deletes a party message
+router.delete("/messages/:messageId", async (req, res) => {
+    try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
+
+        const { messageId } = req.params;
+        const userId = req.session.user._id;
+
+        // Validate message ID
+        if (!ObjectId.isValid(messageId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid message ID",
+                content: { message: "Invalid message ID" }
+            });
+        }
+
+        // Find the message
+        const message = await getDb().collection("messages").findOne({
+            _id: new ObjectId(messageId)
+        });
+
+        if (!message) {
+            return res.status(404).json({
+                success: false,
+                message: "Message not found",
+                content: { message: "Message not found" }
+            });
+        }
+
+        // Find the party that the message belongs to
+        const party = await getDb().collection("parties").findOne({
+            _id: message.partyId
+        });
+
+        if (!party) {
+            return res.status(404).json({
+                success: false,
+                message: "Party not found",
+                content: { message: "Party not found" }
+            });
+        }
+
+        // Check if user is a party member
+        const membership = party.members.find(member =>
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!membership) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a member of this party",
+                content: { message: "You are not a member of this party" }
+            });
+        }
+
+        // Check if user created the message or owns the party
+        const isCreator = message.senderId.toString() === userId.toString();
+        const isOwner = membership.role === "owner";
+
+        if (!isCreator && !isOwner) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not have permission to delete this message",
+                content: { message: "You do not have permission to delete this message" }
+            });
+        }
+
+        // Delete the message
+        await getDb().collection("messages").deleteOne({
+            _id: new ObjectId(messageId)
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Message deleted successfully"
+        });
+
+    } catch (error) {
+        console.error("Error deleting message:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+            content: { message: "An error occurred while deleting the message" }
+        });
+    }
+});
+
 
 export default router;

@@ -284,26 +284,27 @@ router.post('/sessions/:sessionId/end', async (req, res) => {
             });
         }
 
-        //Update the session to end it
-        const result = await db.collection('sessions').updateOne(
-            { _id: new ObjectId(sessionId) },
-            {
-                $set: {
-                    status: 'ended',
-                    endedAt: new Date()
-                }
-            }
-        );
+        // Delete all locations associated with that session
+        await getDb().collection('locations').deleteMany({
+            sessionId: sessionId
+        });
 
-        //Returning the updated session from the database.
-        const updatedSession = await db.collection('sessions').findOne({
+        // Delete the session itself
+        const result = await db.collection('sessions').deleteOne({
             _id: new ObjectId(sessionId)
         });
 
+        // Verify that the session was deleted
+        if (result.deletedCount === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Hunting session not found.'
+            });
+        }
+
         return res.status(200).json({
             success: true,
-            message: "Hunting session successfully ended.",
-            data: updatedSession
+            message: "Hunting session successfully ended and deleted.",
         });
 
     } catch (error) {
@@ -374,16 +375,49 @@ router.get('/sessions/:sessionId/locations', async (req, res) => {
             });
         }
 
-
-        //Retrieving locations of the participants.
         const locations = await db.collection('locations').find({
             sessionId: sessionId
         }).toArray();
 
+        // Get the user IDs from the location records.
+        const memberIds = locations.map(location =>
+            new ObjectId(location.userId)
+        );
+
+        // Retrieve the corresponding users.
+        const users = await db.collection('users').find(
+            {
+                _id: { $in: memberIds }
+            },
+            {
+                projection: {
+                    firstName: 1,
+                    lastName: 1
+                }
+            }
+        ).toArray();
+
+        // Attach names to each location.
+        const locationsWithNames = locations.map(location => {
+            const user = users.find(
+                u => u._id.toString() === location.userId.toString()
+            );
+
+            return {
+                ...location,
+                firstName: user?.firstName || "Unknown",
+                lastName: user?.lastName || "User"
+            };
+        });
+
+
+
+
+
         return res.status(200).json({
             success: true,
             message: "Sessions locations retrieved successfully.",
-            data: locations
+            data: locationsWithNames
         });
 
     } catch (error) {

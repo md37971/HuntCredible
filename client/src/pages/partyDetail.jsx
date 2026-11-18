@@ -2,19 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import {
   Alert, Avatar, Badge, Button, Card, Center, Group, Loader,
-  Modal, Paper, Stack, Text, Title,
+  Modal, Paper, Stack, Text, Title, Code, CopyButton
 } from '@mantine/core'
 import {
-  deleteParty, errorMessage, getMe, getParty, leaveParty, removeMember,
+  deleteParty, errorMessage, getMe, getParty, getPartyMembers ,leaveParty, removeMember,
 } from '../API/api.js'
 
 const sameId = (a, b) => String(a) === String(b)
 
-const memberName = (m, me) => {
-  const person = m.firstName ? m : sameId(m.userId, me?._id) ? me : null
-  return person
-    ? `${person.firstName} ${person.lastName ?? ''}`.trim()
-    : `User …${String(m.userId).slice(-6)}`
+const memberName = (m) => {
+    console.log("Member object:", m);
+
+    return `${m.firstName ?? 'Unknown'} ${m.lastName ?? 'User'}`.trim();
 }
 
 const formatDate = (iso) =>
@@ -32,20 +31,39 @@ export default function PartyDetail() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
 
-  useEffect(() => {
-    let ignore = false
+    useEffect(() => {
+        let ignore = false
 
-    Promise.all([getMe(), getParty(partyId)])
-      .then(([meRes, data]) => {
-        if (ignore) return
-        setMe(meRes.content.user)
-        setParty(data)
-      })
-      .catch((err) => { if (!ignore) setError(errorMessage(err, 'Could not load party')) })
-      .finally(() => { if (!ignore) setLoading(false) })
+        Promise.all([
+            getMe(),
+            getParty(partyId),
+            getPartyMembers(partyId)
+        ])
+            .then(([meRes, data, members]) => {
+                if (ignore) return
 
-    return () => { ignore = true }
-  }, [partyId])
+                setMe(meRes.content.user)
+
+                setParty({
+                    ...data,
+                    members: members
+                })
+            })
+            .catch((err) => {
+                if (!ignore) {
+                    setError(errorMessage(err, 'Could not load party'))
+                }
+            })
+            .finally(() => {
+                if (!ignore) {
+                    setLoading(false)
+                }
+            })
+
+        return () => {
+            ignore = true
+        }
+    }, [partyId])
 
   function ask(dialog) {
     setActionError('')
@@ -128,6 +146,24 @@ export default function PartyDetail() {
             <Text size="sm" c="dimmed" mt="xs">
               {members.length} {members.length === 1 ? 'member' : 'members'} · Created {formatDate(party.createdAt)}
             </Text>
+            {isLeader && party.inviteCode && (
+              <Group gap="xs" mt="sm">
+                <Text size="sm" c="dimmed">Invite code:</Text>
+                <Code fz="sm">{party.inviteCode}</Code>
+                <CopyButton value={party.inviteCode} timeout={2000}>
+                  {({ copied, copy }) => (
+                    <Button
+                      size="compact-xs"
+                      variant="light"
+                      color={copied ? 'teal' : undefined}
+                      onClick={copy}
+                    >
+                      {copied ? 'Copied' : 'Copy'}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Group>
+            )}
           </div>
           {isLeader
             ? <Button color="red" variant="light" onClick={destroy}>Delete party</Button>

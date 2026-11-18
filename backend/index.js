@@ -47,7 +47,7 @@ app.use(`${BASE_URL}/example`, exampleRouter); //TEST ROUTE
 app.use(`${BASE_URL}/submission`, submissionRouter);
 app.use(`${BASE_URL}/parties`, partyRouter);
 app.use(BASE_URL, sessionRoutes);
-app.use(`${BASE_URL}/challenges`, challengeRouter);
+app.use(BASE_URL, challengeRouter);
 
 // Starting connection
 async function startServer() {

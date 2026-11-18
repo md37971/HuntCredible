@@ -134,3 +134,19 @@ export async function updatePin(partyId, pinId, description) {
 export async function deletePin(partyId, pinId) {
   await api.delete(`/parties/${partyId}/pins/${pinId}`)
 }
+
+//////////////// Message Functions //////////////////
+
+export async function getMessages(partyId) {
+  const { data } = await api.get(`/parties/${partyId}/messages`)
+  return data.data
+}
+
+export async function sendMessage(partyId, content) {
+  const { data } = await api.post(`/parties/${partyId}/messages`, { content })
+  return data.data
+}
+
+export async function deleteMessage(messageId) {
+  await api.delete(`/parties/messages/${messageId}`)
+}

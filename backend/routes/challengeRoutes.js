@@ -6,6 +6,13 @@ const router = express.Router();
 // GET /api/v1/challenges - Retrieves all active challenges
 router.get("/challenges", async (req, res) => {
     try {
+        if (!req.session?.user) {
+            return res.status(401).json({
+                statusCode: 401,
+                statusMessage: "Unauthorized",
+                content: { message: "You must be logged in" }
+            });
+        }
         const now = new Date();
 
         // Finds challenges that are currently active.

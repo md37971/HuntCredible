@@ -7,8 +7,6 @@ def viewResultsPhoto(results, image_path):
 
     for result in results:
         for box in result.boxes:
-            #print(box)
-
             #Gets Class ID Number, where this stores the animal's ID number to return its name.
             class_id = int(box.cls[0])
             name = result.names[class_id]
@@ -30,8 +28,8 @@ def viewResultsPhoto(results, image_path):
     return detections
 
 def predictImage(imageURL):
-    confidenceScore = 0.65
-    runModel = model.predict(source=imageURL, show=False, conf=confidenceScore, save=False)
+    confidenceScore = 0.40
+    runModel = model.predict(source=imageURL, show=False, conf=confidenceScore, save=False,imgsz=920,iou=0.70)
     detections = viewResultsPhoto(runModel, imageURL)
    
     return detections

@@ -30,8 +30,9 @@ def viewResultsPhoto(results, image_path):
     return detections
 
 def predictImage(imageURL):
-    confidenceScore = 0.65
-    runModel = model.predict(source=imageURL, show=False, conf=confidenceScore, save=False)
+    confidenceScore = 0.40
+    #runModel = model.predict(source=imageURL, show=False, conf=confidenceScore, save=False)
+    runModel = model.predict(source=imageURL, show=False, conf=confidenceScore, save=False,imgsz=920,iou=0.70)
     detections = viewResultsPhoto(runModel, imageURL)
    
     return detections

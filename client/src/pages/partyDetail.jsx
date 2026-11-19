@@ -1,20 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import {
-  Alert, Avatar, Badge, Button, Card, Center, Group, Loader,
-  Modal, Paper, Stack, Text, Title, Code, CopyButton
+  Alert, Avatar, Badge, Button, Card, Center, Code, CopyButton, Group, Loader,
+  Modal, Paper, Stack, Tabs, Text, Title,
 } from '@mantine/core'
 import {
-  deleteParty, errorMessage, getMe, getParty, getPartyMembers ,leaveParty, removeMember,
+  deleteParty, errorMessage, getMe, getParty, getPartyMembers, leaveParty, removeMember,
 } from '../API/api.js'
+import PartyChat from './partyChat.jsx'
 
 const sameId = (a, b) => String(a) === String(b)
 
-const memberName = (m) => {
-    console.log("Member object:", m);
-
-    return `${m.firstName ?? 'Unknown'} ${m.lastName ?? 'User'}`.trim();
-}
+const memberName = (m) => `${m.firstName ?? 'Unknown'} ${m.lastName ?? 'User'}`.trim()
 
 const formatDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''
@@ -31,39 +28,20 @@ export default function PartyDetail() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
 
-    useEffect(() => {
-        let ignore = false
+  useEffect(() => {
+    let ignore = false
 
-        Promise.all([
-            getMe(),
-            getParty(partyId),
-            getPartyMembers(partyId)
-        ])
-            .then(([meRes, data, members]) => {
-                if (ignore) return
+    Promise.all([getMe(), getParty(partyId), getPartyMembers(partyId)])
+      .then(([meRes, data, members]) => {
+        if (ignore) return
+        setMe(meRes.content.user)
+        setParty({ ...data, members })
+      })
+      .catch((err) => { if (!ignore) setError(errorMessage(err, 'Could not load party')) })
+      .finally(() => { if (!ignore) setLoading(false) })
 
-                setMe(meRes.content.user)
-
-                setParty({
-                    ...data,
-                    members: members
-                })
-            })
-            .catch((err) => {
-                if (!ignore) {
-                    setError(errorMessage(err, 'Could not load party'))
-                }
-            })
-            .finally(() => {
-                if (!ignore) {
-                    setLoading(false)
-                }
-            })
-
-        return () => {
-            ignore = true
-        }
-    }, [partyId])
+    return () => { ignore = true }
+  }, [partyId])
 
   function ask(dialog) {
     setActionError('')
@@ -91,7 +69,7 @@ export default function PartyDetail() {
     return (
       <Stack maw={800} mx="auto">
         <Alert color="red" variant="light">{error}</Alert>
-        <Button component={Link} to="/parties" variant="subtle" w="fit-content">← All parties</Button>
+        <Button component={Link} to="/parties" variant="transparent" w="fit-content">← All parties</Button>
       </Stack>
     )
   }
@@ -121,7 +99,7 @@ export default function PartyDetail() {
 
   const kick = (member) => ask({
     title: 'Remove member',
-    message: `Remove ${memberName(member, me)} from ${party.name}?`,
+    message: `Remove ${memberName(member)} from ${party.name}?`,
     label: 'Remove',
     action: async () => {
       await removeMember(partyId, String(member.userId))
@@ -131,7 +109,7 @@ export default function PartyDetail() {
 
   return (
     <Stack maw={800} mx="auto">
-      <Button component={Link} to="/parties" variant="subtle" w="fit-content" px={0}>
+      <Button component={Link} to="/parties" variant="transparent" w="fit-content" px={0}>
         ← All parties
       </Button>
 
@@ -148,7 +126,7 @@ export default function PartyDetail() {
             </Text>
             {isLeader && party.inviteCode && (
               <Group gap="xs" mt="sm">
-                <Text size="sm" c="dimmed">Invite code:</Text>
+                <Text size="sm" c="dimmed">Invite Code:</Text>
                 <Code fz="sm">{party.inviteCode}</Code>
                 <CopyButton value={party.inviteCode} timeout={2000}>
                   {({ copied, copy }) => (
@@ -171,37 +149,49 @@ export default function PartyDetail() {
         </Group>
       </Card>
 
-      <Title order={4} mt="sm">Members</Title>
-      <Stack gap="sm">
-        {members.map((m) => {
-          const isMe = sameId(m.userId, me._id)
-          const name = memberName(m, me)
-          return (
-            <Paper key={String(m.userId)} withBorder p="sm">
-              <Group justify="space-between" wrap="nowrap">
-                <Group wrap="nowrap">
-                  <Avatar radius="xl" color="initials" name={name} />
-                  <div>
-                    <Text fw={500}>
-                      {name}
-                      {isMe && <Text span c="dimmed"> (you)</Text>}
-                    </Text>
-                    <Text size="xs" c="dimmed">Joined {formatDate(m.joinedAt)}</Text>
-                  </div>
-                </Group>
-                <Group gap="xs" wrap="nowrap">
-                  <Badge variant={m.role === 'owner' ? 'filled' : 'outline'}>
-                    {m.role === 'owner' ? 'Leader' : 'Member'}
-                  </Badge>
-                  {isLeader && !isMe && (
-                    <Button size="xs" color="red" variant="subtle" onClick={() => kick(m)}>Remove</Button>
-                  )}
-                </Group>
-              </Group>
-            </Paper>
-          )
-        })}
-      </Stack>
+      <Tabs defaultValue="members" keepMounted={false} mt="sm">
+        <Tabs.List>
+          <Tabs.Tab value="members">Members ({members.length})</Tabs.Tab>
+          <Tabs.Tab value="chat">Chat</Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value="members" pt="md">
+          <Stack gap="sm">
+            {members.map((m) => {
+              const isMe = sameId(m.userId, me._id)
+              const name = memberName(m)
+              return (
+                <Paper key={String(m.userId)} withBorder p="sm">
+                  <Group justify="space-between" wrap="nowrap">
+                    <Group wrap="nowrap">
+                      <Avatar radius="xl" color="initials" name={name} />
+                      <div>
+                        <Text fw={500}>
+                          {name}
+                          {isMe && <Text span c="dimmed"> (you)</Text>}
+                        </Text>
+                        <Text size="xs" c="dimmed">Joined {formatDate(m.joinedAt)}</Text>
+                      </div>
+                    </Group>
+                    <Group gap="xs" wrap="nowrap">
+                      <Badge variant={m.role === 'owner' ? 'filled' : 'outline'}>
+                        {m.role === 'owner' ? 'Leader' : 'Member'}
+                      </Badge>
+                      {isLeader && !isMe && (
+                        <Button size="xs" color="red" variant="subtle" onClick={() => kick(m)}>Remove</Button>
+                      )}
+                    </Group>
+                  </Group>
+                </Paper>
+              )
+            })}
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="chat" pt="md">
+          <PartyChat me={me} />
+        </Tabs.Panel>
+      </Tabs>
 
       <Modal opened={!!confirm} onClose={() => !busy && setConfirm(null)} title={confirm?.title} centered>
         <Stack>

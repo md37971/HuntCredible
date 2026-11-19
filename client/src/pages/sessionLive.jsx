@@ -123,7 +123,7 @@ export default function SessionLive() {
     }
 
   const backLink = (
-    <Button component={Link} to="/sessions" variant="subtle" w="fit-content" px={0}>
+    <Button component={Link} to="/sessions" variant="transparent" w="fit-content" px={0}>
       ← All sessions
     </Button>
   )

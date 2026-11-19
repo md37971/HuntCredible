@@ -9,6 +9,7 @@ import Session from './pages/session.jsx'
 import SessionLive from './pages/sessionLive.jsx'
 import SessionMap from './pages/sessionMap.jsx'
 import PartyChat from './pages/partyChat.jsx'
+import AnimalDetector from './pages/ai.jsx'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: 'parties', element: <Parties /> },
       { path: 'parties/:partyId', element: <PartyDetail /> },
       { path: 'sessions', element: <Session />},
+      { path: 'ai', element: <AnimalDetector />},
       {
         path: 'sessions/:partyId/:sessionId',
         element: <SessionLive />,

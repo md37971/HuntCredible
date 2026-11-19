@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { AppShell, Burger, Group, NavLink, Title, Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { Link, Outlet, useLocation, useNavigate } from 'react-router'
+import { Link, Outlet, useNavigate } from 'react-router'
 import { getMe, logout } from './API/api.js'
 import UserMenu from './components/userMenu.jsx'
 
 const links = [
   { label: 'Home', to: '/' },
   { label: 'Parties', to: '/parties'},
-  { label: 'Hunting Sessions', to: './sessions'}
+  { label: 'Hunting Sessions', to: './sessions'},
+  { label: 'Animal Detector', to: './ai'},
 ]
 
 export default function App() {
   const [opened, { toggle, close }] = useDisclosure()
-  const { pathname } = useLocation()
   const navigate = useNavigate()
 
   const [user, setUser] = useState(null)

@@ -150,3 +150,12 @@ export async function sendMessage(partyId, content) {
 export async function deleteMessage(messageId) {
   await api.delete(`/parties/messages/${messageId}`)
 }
+
+//////////////// AI Model Functions //////////////////
+
+export async function identifyAnimal(file) {
+  const form = new FormData()
+  form.append('image', file)
+  const { data } = await api.post('/submission', form, { timeout: 60000 })
+  return data.content
+}

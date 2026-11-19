@@ -45,7 +45,6 @@ const pin = (label, color) => L.divIcon({
     color:#fff;font:600 12px/1 sans-serif">${label}</div>`,
 })
 
-// Teardrop marker for map pins, so they look different from hunters
 const mapPinIcon = L.divIcon({
   className: '',
   iconSize: [26, 26],
@@ -141,7 +140,6 @@ export default function SessionMap() {
     }
   }, [session._id, isActive])
 
-  // Pins: the backend returns every pin in the party, so keep only this session's
   useEffect(() => {
     let ignore = false
 
@@ -336,24 +334,17 @@ export default function SessionMap() {
                 <LayersControl position="topright">
                   <LayersControl.BaseLayer checked name="Topo">
                     <TileLayer
-                      attribution='Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Style &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
-                      url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                      maxNativeZoom={17}
-                      maxZoom={19}
-                    />
-                  </LayersControl.BaseLayer>
-                  <LayersControl.BaseLayer name="USGS Topo (US only)">
-                    <TileLayer
                       attribution='Tiles courtesy of the <a href="https://www.usgs.gov/">U.S. Geological Survey</a>'
                       url="https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}"
                       maxNativeZoom={16}
                       maxZoom={19}
                     />
                   </LayersControl.BaseLayer>
-                  <LayersControl.BaseLayer name="Street">
+                  <LayersControl.BaseLayer name="Satellite">
                     <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='Imagery: USDA NAIP via <a href="https://www.usgs.gov/">USGS The National Map</a>'
+                      url="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
+                      maxNativeZoom={16}
                       maxZoom={19}
                     />
                   </LayersControl.BaseLayer>

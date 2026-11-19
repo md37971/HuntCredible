@@ -89,7 +89,7 @@ export default function Parties() {
       <Paper withBorder p="md">
         <form onSubmit={handleJoin}>
           <Stack gap="xs">
-            <Title order={4}>Join a party</Title>
+            <Title order={4}>Join a Hunting Party</Title>
             <Text size="sm" c="dimmed">Code provided from the party leader.</Text>
             <Group align="flex-start" wrap="nowrap">
               <TextInput

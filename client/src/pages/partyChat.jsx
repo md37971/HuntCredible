@@ -16,8 +16,9 @@ const fullName = (m) => `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim() || 'Un
 const timeOf = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 const dayOf = (iso) => new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 
-export default function PartyChat() {
-  const { me } = useOutletContext()
+export default function PartyChat({ me: meProp }) {
+  const outlet = useOutletContext()
+  const me = meProp ?? outlet?.me
   const { partyId } = useParams()
 
   const [members, setMembers] = useState([])
@@ -71,7 +72,7 @@ export default function PartyChat() {
     }
   }, [partyId])
 
-  // Stay pinned to the bottom unless the user scrolled up to read history
+  
   useEffect(() => {
     const el = viewport.current
     if (!el) return

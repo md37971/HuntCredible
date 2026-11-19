@@ -7,8 +7,6 @@ def viewResultsPhoto(results, image_path):
 
     for result in results:
         for box in result.boxes:
-            #print(box)
-
             #Gets Class ID Number, where this stores the animal's ID number to return its name.
             class_id = int(box.cls[0])
             name = result.names[class_id]

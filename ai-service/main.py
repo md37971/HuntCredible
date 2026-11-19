@@ -26,8 +26,7 @@ def health_check():
     return {"status": "healthy"}
 
 @app.post("/predict") #Predict endpoint
-async def predict_endpoint(file: UploadFile = File(...)):   
-        print(file.content_type)
+async def predict_endpoint(file: UploadFile = File(...)):
         #Check if the uploaded file is an image
         if (file.content_type not in ALLOWED_EXTENSIONS) and (not file.content_type == "application/octet-stream"):
             raise HTTPException(

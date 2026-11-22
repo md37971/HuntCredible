@@ -7,11 +7,7 @@ model = YOLO("trainedModel/weights/best.pt")
 # Evaluate using the test dataset.
 
 #NOTE: THE COMBINED DATASET FOLDER MUST BE IN THE SAME DIRECTORY AS THIS PYTHON FILE. IT IS NOT INCLUDED IN THIS REPOSITORY DUE TO GIT FILE LIMIT RESTRICTIONS.
-metrics = model.val(
-    data="combined_dataset/data.yaml",
-    split="test",
-    imgsz=640
-)
+metrics = model.val(data="combined_dataset/data.yaml",split="test",imgsz = 640,conf = 0.40,iou = 0.70)
 
 
 

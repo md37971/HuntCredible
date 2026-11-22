@@ -9,7 +9,7 @@ import exampleRouter from './routes/example.js'; //TEST ROUTE
 import submissionRouter from './routes/submissionRoutes.js';
 import partyRouter from './routes/partyRoutes.js'
 import sessionRoutes from './routes/sessionRoutes.js'
-import challengeRouter from './routes/challengeRoutes.js';
+import competitionRouter from './routes/competitionRoutes.js';
 
 dotenv.config();
 
@@ -47,7 +47,7 @@ app.use(`${BASE_URL}/example`, exampleRouter); //TEST ROUTE
 app.use(`${BASE_URL}/submission`, submissionRouter);
 app.use(`${BASE_URL}/parties`, partyRouter);
 app.use(BASE_URL, sessionRoutes);
-app.use(`${BASE_URL}/challenges`, challengeRouter);
+app.use(BASE_URL, competitionRouter);
 
 // Starting connection
 async function startServer() {

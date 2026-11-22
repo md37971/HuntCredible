@@ -14,6 +14,7 @@ import Competition from './pages/competition.jsx'
 import CompetitionDetail from './pages/competitionDetail.jsx'
 import CompetitionList from './pages/competitionList.jsx'
 import Leaderboard from './pages/leaderboard.jsx'
+import Admin from './pages/admin.jsx'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: 'sessions', element: <Session />},
       { path: 'ai', element: <AnimalDetector />},
       { path: 'competitions/:competitionId', element: <CompetitionDetail />},
+      { path: 'admin', element: <Admin />},
       {
         path: 'competitions',
         element: <Competition />,

@@ -234,4 +234,22 @@ export async function getMyRank() {
   return data.data 
 }
 
+//////////////// Admin Functions //////////////////
+
+export async function getReportedEntries() {
+  const { data } = await api.get('/admin/reports')
+  return data.data
+}
+
+export async function dismissReports(submissionId) {
+  const { data } = await api.patch(`/admin/reports/${submissionId}/dismiss`)
+  return data.data
+}
+
+export async function deleteEntry(competitionId, submissionId) {
+  const { data } = await api.delete(`/competitions/${competitionId}/submissions/${submissionId}`)
+  return data
+}
+
+
 export const notBuiltYet = (err) => err.response?.status === 404 && !err.response?.data?.content

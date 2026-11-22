@@ -730,4 +730,154 @@ router.post("/submissions/:submissionId/report", async (req, res) => {
     }
 });
 
+// GET /api/v1/admin/reports - Lists every entry that has been reported (Admin only)
+router.get("/admin/reports", (req, res, next) => {
+    if (!req.session?.user) {
+        return res.status(401).json({
+            statusCode: 401,
+            statusMessage: "Unauthorized",
+            content: { message: "You must be logged in" }
+        });
+    }
+
+    // Admin Check
+    if (req.session.user.role !== "admin") {
+        return res.status(403).json({
+            statusCode: 403,
+            statusMessage: "Forbidden",
+            content: { message: "You do not have permission to view reports" }
+        });
+    }
+
+    next();
+},
+    async (req, res) => {
+        try {
+            const entries = await getDb().collection("userEntries")
+                .find({ "reports.0": { $exists: true } })
+                .project({ latitude: 0, longitude: 0, clientSubmissionId: 0, voters: 0 })
+                .sort({ reportCount: -1, submittedAt: -1 })
+                .toArray();
+
+            const userIds = [...new Set(entries.flatMap((entry) => [
+                String(entry.userId),
+                ...entry.reports.map((report) => String(report.userId))
+            ]))]
+                .filter((id) => ObjectId.isValid(id))
+                .map((id) => new ObjectId(id));
+
+            const users = await getDb().collection("users")
+                .find({ _id: { $in: userIds } })
+                .project({ firstName: 1, lastName: 1, email: 1 })
+                .toArray();
+
+            const usersById = new Map(users.map((user) => [String(user._id), user]));
+
+            // Look up each entry's competition title in one query.
+            const competitionIds = [...new Set(entries.map((entry) => String(entry.competitionId)))]
+                .filter((id) => ObjectId.isValid(id))
+                .map((id) => new ObjectId(id));
+
+            const competitions = await getDb().collection("competitions")
+                .find({ _id: { $in: competitionIds } })
+                .project({ title: 1 })
+                .toArray();
+
+            const competitionsById = new Map(competitions.map((c) => [String(c._id), c]));
+
+            const reported = entries.map(({ image, imageType, reports, ...entry }) => ({
+                ...entry,
+                user: usersById.get(String(entry.userId)) ?? null,
+                competition: competitionsById.get(String(entry.competitionId)) ?? null,
+                reportCount: reports.length,
+                reports: reports.map((report) => ({
+                    ...report,
+                    user: usersById.get(String(report.userId)) ?? null
+                })),
+                imageUrl: image
+                    ? `data:${imageType || "image/webp"};base64,${image.toString("base64")}`
+                    : null
+            }));
+
+            return res.status(200).json({
+                success: true,
+                data: reported
+            });
+
+        } catch (error) {
+            console.error("Error retrieving reports:", error);
+
+            return res.status(500).json({
+                statusCode: 500,
+                statusMessage: "Internal Server Error",
+                content: { message: "Failed to retrieve reports" }
+            });
+        }
+    }
+);
+
+// PATCH /api/v1/admin/reports/:submissionId/dismiss - Clears an entry's reports, keeping the entry (Admin only)
+router.patch("/admin/reports/:submissionId/dismiss", (req, res, next) => {
+    if (!req.session?.user) {
+        return res.status(401).json({
+            statusCode: 401,
+            statusMessage: "Unauthorized",
+            content: { message: "You must be logged in" }
+        });
+    }
+
+    // Admin Check
+    if (req.session.user.role !== "admin") {
+        return res.status(403).json({
+            statusCode: 403,
+            statusMessage: "Forbidden",
+            content: { message: "You do not have permission to dismiss reports" }
+        });
+    }
+
+    next();
+},
+    async (req, res) => {
+        try {
+            const { submissionId } = req.params;
+
+            if (!ObjectId.isValid(submissionId)) {
+                return res.status(400).json({
+                    statusCode: 400,
+                    statusMessage: "Bad Request",
+                    content: { message: "Invalid submission ID" }
+                });
+            }
+
+            const result = await getDb().collection("userEntries").updateOne(
+                { _id: new ObjectId(submissionId) },
+                { $set: { reports: [], reportCount: 0 } }
+            );
+
+            if (result.matchedCount === 0) {
+                return res.status(404).json({
+                    statusCode: 404,
+                    statusMessage: "Not Found",
+                    content: { message: "Submission not found" }
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                data: { submissionId: submissionId }
+            });
+
+        } catch (error) {
+            console.error("Error dismissing reports:", error);
+
+            return res.status(500).json({
+                statusCode: 500,
+                statusMessage: "Internal Server Error",
+                content: { message: "Failed to dismiss reports" }
+            });
+        }
+    }
+);
+
+
 export default router;

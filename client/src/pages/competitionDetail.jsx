@@ -1,29 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import {
-  Alert, AspectRatio, Avatar, Badge, Button, Card, Center, Group, Image, List, Loader, Modal,
-  Paper, SegmentedControl, SimpleGrid, Stack, Tabs, Text, Textarea, Title, UnstyledButton,
+  ActionIcon, Alert, AspectRatio, Avatar, Badge, Button, Card, Center, Group, Image, List, Loader, Modal,
+  Paper, Radio, SegmentedControl, SimpleGrid, Stack, Tabs, Text, Textarea, Title, Tooltip, UnstyledButton,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import {
   errorMessage, getCompetition, getCompetitionEntries, getMe, notBuiltYet,
-  submitCompetitionEntry, unvoteEntry, voteEntry,
+  reportEntry, submitCompetitionEntry, unvoteEntry, voteEntry,
 } from '../API/api.js'
 import {
-  categoryOf, formatDate, fullName, plural, STATUS, statusOf, timeLabel,
+  categoryOf, formatDate, fullName, plural, timeLabel,
 } from '../data/competition.js'
 
 const CAPTION_MAX = 200
-const MEDALS = ['#d4a017', '#9e9e9e', '#b06d3b'] // gold, silver, bronze
-
-const REVIEW = {
-  pending: { label: 'Pending review', color: 'yellow' },
-  needs_review: { label: 'In review', color: 'yellow' },
-  approved: { label: 'Approved', color: 'green' },
-  rejected: { label: 'Rejected', color: 'red' },
-}
-
 const sameId = (a, b) => String(a) === String(b)
+
+const REPORT_REASONS = [
+  'Photo is older than the competition',
+  "Doesn't fit this competition",
+  "Not their photo (stolen or copied)",
+  'Inappropriate content',
+  'Other',
+]
+const REPORT_DETAILS_MAX = 250
+
+function FlagIcon({ filled }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"
+      fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 8 2a6 6 0 0 0 3.6-1.2 1 1 0 0 1 1.4.9v10.6a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a8 8 0 0 0-4 1" />
+    </svg>
+  )
+}
 
 function ThumbIcon({ filled }) {
   return (
@@ -51,6 +61,8 @@ export default function CompetitionDetail() {
   const [votingId, setVotingId] = useState(null)
   const [viewing, setViewing] = useState(null) 
   const [submitOpen, setSubmitOpen] = useState(false)
+  const [reporting, setReporting] = useState(null)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     let ignore = false
@@ -84,9 +96,7 @@ export default function CompetitionDetail() {
     )
   }
 
-  const status = statusOf(competition, now)
   const category = categoryOf(competition)
-  const isOpen = status === 'active'
   const isMine = (e) => sameId(e.userId, me._id)
   const nameOf = (e) => (isMine(e) ? 'You' : e.user ? fullName(e.user) : 'Hunter')
   const myEntry = entries.find(isMine)
@@ -124,6 +134,12 @@ export default function CompetitionDetail() {
     }
   }
 
+  function handleReported(entryId) {
+    setEntries((list) => list.map((e) => (e._id === entryId ? { ...e, userReported: true } : e)))
+    setReporting(null)
+    setNotice('Thanks. Your report was sent and will be reviewed.')
+  }
+
   async function handleSubmitted() {
     setSubmitOpen(false)
     setSort('newest')
@@ -139,12 +155,7 @@ export default function CompetitionDetail() {
         <Stack gap="sm">
           <Group justify="space-between" align="flex-start">
             <div>
-              <Group gap="xs">
-                <Title order={3}>{competition.title}</Title>
-                <Badge color={STATUS[status].color} variant={isOpen ? 'filled' : 'light'}>
-                  {STATUS[status].label}
-                </Badge>
-              </Group>
+              <Title order={3}>{competition.title}</Title>
               <Group gap="xs" mt={6}>
                 <Badge color={category.color} variant="light">{category.label}</Badge>
                 {competition.pointsReward != null && (
@@ -153,12 +164,8 @@ export default function CompetitionDetail() {
               </Group>
             </div>
 
-            {isOpen && !myEntry && <Button onClick={() => setSubmitOpen(true)}>Submit entry</Button>}
-            {myEntry && (
-              <Badge size="lg" variant="outline" color={REVIEW[myEntry.status]?.color}>
-                {REVIEW[myEntry.status]?.label ?? "You've entered"}
-              </Badge>
-            )}
+            {!myEntry && <Button onClick={() => setSubmitOpen(true)}>Submit entry</Button>}
+            {myEntry && <Badge size="lg" variant="outline">Entered</Badge>}
           </Group>
 
           {competition.description && <Text>{competition.description}</Text>}
@@ -172,75 +179,67 @@ export default function CompetitionDetail() {
           </Text>
 
           <List size="sm" spacing={2} c="dimmed">
-            <List.Item>One entry per person. Photos must be taken with your phone's camera.</List.Item>
-            <List.Item>Vote with a thumbs-up on as many entries as you like, but not your own.</List.Item>
-            <List.Item>Voting closes when the competition ends. The most votes wins.</List.Item>
+            <List.Item>One entry per person.</List.Item>
+            <List.Item>Vote for as many entries as you like.</List.Item>
           </List>
         </Stack>
       </Card>
 
-      {status === 'upcoming' ? (
-        <Paper withBorder p="xl">
-          <Text c="dimmed" ta="center">
-            This competition opens on {formatDate(competition.startDate)}. Come back then to enter.
-          </Text>
-        </Paper>
-      ) : (
-        <Tabs value={tab} onChange={setTab} keepMounted={false}>
-          <Tabs.List>
-            <Tabs.Tab value="entries">Entries ({entries.length})</Tabs.Tab>
-            <Tabs.Tab value="standings">{status === 'ended' ? 'Results' : 'Standings'}</Tabs.Tab>
-          </Tabs.List>
+      <Tabs value={tab} onChange={setTab} keepMounted={false}>
+        <Tabs.List>
+          <Tabs.Tab value="entries">Entries ({entries.length})</Tabs.Tab>
+          <Tabs.Tab value="standings">Standings</Tabs.Tab>
+        </Tabs.List>
 
-          <Tabs.Panel value="entries" pt="md">
-            <Stack>
-              {entries.length > 1 && (
-                <SegmentedControl
-                  value={sort}
-                  onChange={setSort}
-                  data={[{ value: 'top', label: 'Top' }, { value: 'newest', label: 'Newest' }]}
-                  w="fit-content"
-                  size="xs"
-                />
-              )}
+        <Tabs.Panel value="entries" pt="md">
+          <Stack>
+            {entries.length > 1 && (
+              <SegmentedControl
+                value={sort}
+                onChange={setSort}
+                data={[{ value: 'top', label: 'Top' }, { value: 'newest', label: 'Newest' }]}
+                w="fit-content"
+                size="xs"
+              />
+            )}
 
-              {voteError && <Alert color="red" variant="light">{voteError}</Alert>}
+            {voteError && <Alert color="red" variant="light">{voteError}</Alert>}
+            {notice && (
+              <Alert color="green" variant="light" withCloseButton onClose={() => setNotice('')}>
+                {notice}
+              </Alert>
+            )}
 
-              {entries.length === 0 ? (
-                <Text c="dimmed">
-                  {isOpen ? 'No entries yet. Be the first!' : 'Nobody entered this competition.'}
-                </Text>
-              ) : (
-                <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }}>
-                  {sorted.map((entry) => (
-                    <EntryCard
-                      key={entry._id}
-                      entry={entry}
-                      name={nameOf(entry)}
-                      mine={isMine(entry)}
-                      canVote={isOpen}
-                      busy={votingId === entry._id}
-                      onVote={() => toggleVote(entry)}
-                      onOpen={() => setViewing(entry)}
-                    />
-                  ))}
-                </SimpleGrid>
-              )}
-            </Stack>
-          </Tabs.Panel>
+            {entries.length === 0 ? (
+              <Text c="dimmed">No entries yet. Be the first!</Text>
+            ) : (
+              <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }}>
+                {sorted.map((entry) => (
+                  <EntryCard
+                    key={entry._id}
+                    entry={entry}
+                    name={nameOf(entry)}
+                    mine={isMine(entry)}
+                    busy={votingId === entry._id}
+                    onVote={() => toggleVote(entry)}
+                    onOpen={() => setViewing(entry)}
+                    onReport={() => { setNotice(''); setReporting(entry) }}
+                  />
+                ))}
+              </SimpleGrid>
+            )}
+          </Stack>
+        </Tabs.Panel>
 
-          <Tabs.Panel value="standings" pt="md">
-            <Standings
-              entries={entries}
-              competition={competition}
-              ended={status === 'ended'}
-              nameOf={nameOf}
-              isMine={isMine}
-              onOpen={setViewing}
-            />
-          </Tabs.Panel>
-        </Tabs>
-      )}
+        <Tabs.Panel value="standings" pt="md">
+          <Standings
+            entries={entries}
+            nameOf={nameOf}
+            isMine={isMine}
+            onOpen={setViewing}
+          />
+        </Tabs.Panel>
+      </Tabs>
 
       <Modal
         opened={!!viewing}
@@ -257,6 +256,13 @@ export default function CompetitionDetail() {
           </Stack>
         )}
       </Modal>
+
+      <ReportModal
+        entry={reporting}
+        name={reporting ? nameOf(reporting) : ''}
+        onClose={() => setReporting(null)}
+        onReported={handleReported}
+      />
 
       <SubmitModal
         opened={submitOpen}
@@ -287,7 +293,7 @@ function EntryImage({ entry, ...props }) {
   return <Image src={entry.imageUrl} alt={entry.caption || 'Competition entry'} {...props} />
 }
 
-function EntryCard({ entry, name, mine, canVote, busy, onVote, onOpen }) {
+function EntryCard({ entry, name, mine, busy, onVote, onOpen, onReport }) {
   return (
     <Card withBorder padding="sm">
       <Card.Section>
@@ -309,22 +315,34 @@ function EntryCard({ entry, name, mine, canVote, busy, onVote, onOpen }) {
         </Group>
 
         {mine ? (
-          <Badge variant="light" leftSection={<ThumbIcon filled />} style={{ flexShrink: 0 }}>
-            {entry.voteCount}
-          </Badge>
+          <Text size="sm" c="dimmed" style={{ flexShrink: 0 }}>
+            {plural(entry.voteCount, 'vote')} · your entry
+          </Text>
         ) : (
-          <Button
-            size="compact-sm"
-            variant={entry.userVoted ? 'filled' : 'default'}
-            leftSection={<ThumbIcon filled={entry.userVoted} />}
-            onClick={onVote}
-            disabled={!canVote || busy}
-            aria-pressed={entry.userVoted}
-            aria-label={entry.userVoted ? 'Remove your vote' : 'Vote for this entry'}
-            style={{ flexShrink: 0 }}
-          >
-            {entry.voteCount}
-          </Button>
+          <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+            <Tooltip label={entry.userReported ? 'You reported this entry' : 'Report this entry'}>
+              <ActionIcon
+                variant="subtle"
+                color={entry.userReported ? 'red' : 'gray'}
+                onClick={onReport}
+                disabled={entry.userReported}
+                aria-label={entry.userReported ? 'You reported this entry' : 'Report this entry'}
+              >
+                <FlagIcon filled={entry.userReported} />
+              </ActionIcon>
+            </Tooltip>
+            <Button
+              size="compact-sm"
+              variant={entry.userVoted ? 'filled' : 'default'}
+              leftSection={<ThumbIcon filled={entry.userVoted} />}
+              onClick={onVote}
+              disabled={busy}
+              aria-pressed={entry.userVoted}
+              aria-label={entry.userVoted ? 'Remove your vote' : 'Vote for this entry'}
+            >
+              {entry.voteCount}
+            </Button>
+          </Group>
         )}
       </Group>
     </Card>
@@ -332,26 +350,18 @@ function EntryCard({ entry, name, mine, canVote, busy, onVote, onOpen }) {
 }
 
 
-function Standings({ entries, competition, ended, nameOf, isMine, onOpen }) {
+function Standings({ entries, nameOf, isMine, onOpen }) {
   if (entries.length === 0) return <Text c="dimmed">No entries yet.</Text>
 
   const rows = [...entries]
     .sort((a, b) => b.voteCount - a.voteCount)
     .map((e, i) => ({ ...e, rank: i + 1 }))
-  const winner = rows[0]
 
   return (
     <Stack gap="sm">
-      {ended && (
-        <Alert variant="light" title={`Winner: ${isMine(winner) ? 'You!' : nameOf(winner)}`}>
-          {plural(winner.voteCount, 'vote')}
-          {competition.pointsReward != null && ` · awarded ${competition.pointsReward} points`}
-        </Alert>
-      )}
-      {!ended && <Text size="sm" c="dimmed">Current standings. Final results are in when the competition ends.</Text>}
+      <Text size="sm" c="dimmed">Current standings. The entry with the most votes when the competition ends wins.</Text>
 
       {rows.map((row) => {
-        const medal = MEDALS[row.rank - 1]
         return (
           <Paper key={row._id} withBorder p="sm" bg={isMine(row) ? 'var(--mantine-primary-color-light)' : undefined}>
             <Group wrap="nowrap" gap="md">
@@ -361,8 +371,7 @@ function Standings({ entries, competition, ended, nameOf, isMine, onOpen }) {
                 style={{
                   flexShrink: 0,
                   borderRadius: '50%',
-                  background: medal ?? 'var(--mantine-color-default-hover)',
-                  color: medal ? 'white' : undefined,
+                  background: 'var(--mantine-color-default-hover)',
                   fontWeight: 700,
                 }}
               >
@@ -384,6 +393,86 @@ function Standings({ entries, competition, ended, nameOf, isMine, onOpen }) {
         )
       })}
     </Stack>
+  )
+}
+
+function ReportModal({ entry, name, onClose, onReported }) {
+  const [reason, setReason] = useState('')
+  const [details, setDetails] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+
+  const isOther = reason === 'Other'
+  const canSend = reason && (!isOther || details.trim().length >= 3)
+
+  function reset() {
+    setReason('')
+    setDetails('')
+    setError('')
+  }
+
+  function close() {
+    if (!sending) onClose()
+  }
+
+  async function send() {
+    setSending(true)
+    setError('')
+    const message = isOther
+      ? details.trim()
+      : details.trim() ? `${reason}: ${details.trim()}` : reason
+    try {
+      await reportEntry(entry._id, message)
+      onReported(entry._id)
+    } catch (err) {
+      if (err.response?.status === 409) onReported(entry._id)
+      else if (notBuiltYet(err)) setError("Reporting isn't available yet.")
+      else setError(errorMessage(err, 'Could not send your report'))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <Modal
+      opened={!!entry}
+      onClose={close}
+      title={`Report ${name}'s entry`}
+      centered
+      closeOnClickOutside={!sending}
+      onExitTransitionEnd={reset}
+    >
+      <Stack>
+        <Radio.Group value={reason} onChange={setReason} label="What's wrong with this entry?">
+          <Stack gap="xs" mt="xs">
+            {REPORT_REASONS.map((r) => <Radio key={r} value={r} label={r} />)}
+          </Stack>
+        </Radio.Group>
+
+        <Textarea
+          label={isOther ? 'Tell us what happened' : 'Details (optional)'}
+          placeholder={isOther ? 'Describe the problem' : 'Anything that helps a moderator review it'}
+          autosize
+          minRows={2}
+          maxLength={REPORT_DETAILS_MAX}
+          value={details}
+          onChange={(e) => setDetails(e.currentTarget.value)}
+          description={`${details.length}/${REPORT_DETAILS_MAX}`}
+          inputWrapperOrder={['label', 'input', 'description']}
+        />
+
+        <Text size="xs" c="dimmed">
+          Reports are private. The person who posted the entry won't see who reported it.
+        </Text>
+
+        {error && <Alert color="red" variant="light">{error}</Alert>}
+
+        <Group justify="flex-end">
+          <Button variant="default" onClick={close} disabled={sending}>Cancel</Button>
+          <Button color="red" onClick={send} loading={sending} disabled={!canSend}>Send report</Button>
+        </Group>
+      </Stack>
+    </Modal>
   )
 }
 

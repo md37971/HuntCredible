@@ -161,29 +161,27 @@ export async function identifyAnimal(file) {
 }
 //////////////// Competition Functions //////////////////
 
-const toEntry = (record) => {
-  const s = record.submission ?? {}
-  return {
-    _id: s.submissionId ?? record._id,
-    challengeId: record.challengeId,
-    userId: record.userId,
-    user: record.user ?? null, 
-    imageUrl: s.imageUrl ?? record.imageUrl ?? null,
-    caption: s.caption ?? record.caption ?? '',
-    status: s.status ?? record.status ?? null, 
-    createdAt: s.submittedAt ?? record.createdAt ?? null,
-    voteCount: s.voteCount ?? record.voteCount ?? 0,
-    userVoted: s.userVoted ?? record.userVoted ?? false,
-  }
-}
+const toEntry = (record) => ({
+  _id: record._id,
+  competitionId: record.competitionId,
+  userId: record.userId,
+  user: record.user ?? null,
+  imageUrl: record.imageUrl ?? `/api/v1/competitions/${record.competitionId}/submissions/${record._id}/image`,
+  caption: record.caption ?? '',
+  status: record.status ?? null,
+  createdAt: record.submittedAt ?? record.createdAt ?? null,
+  voteCount: record.voteCount ?? 0,
+  userVoted: record.userVoted ?? false,
+  userReported: record.userReported ?? false,
+})
 
 export async function getCompetitions() {
-  const { data } = await api.get('/challenges')
+  const { data } = await api.get('/competitions')
   return data.data
 }
 
 export async function getCompetition(competitionId) {
-  const { data } = await api.get(`/competition/${competitionId}`)
+  const { data } = await api.get(`/competitions/${competitionId}`)
   return data.data
 }
 
@@ -193,7 +191,7 @@ export async function getMyCompetitions() {
 }
 
 export async function getCompetitionEntries(competitionId) {
-  const { data } = await api.get(`/competition/${competitionId}/submissions`)
+  const { data } = await api.get(`/competitions/${competitionId}/submissions`)
   return data.data.map(toEntry)
 }
 
@@ -205,17 +203,22 @@ export async function submitCompetitionEntry(competitionId, { image, caption, la
   form.append('longitude', longitude)
   form.append('capturedAt', capturedAt)
   form.append('clientSubmissionId', crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
-  const { data } = await api.post(`/competition/${competitionId}/submit`, form)
+  const { data } = await api.post(`/competitions/${competitionId}/submit`, form)
   return data.data
 }
 
 export async function voteEntry(submissionId) {
-  const { data } = await api.post(`/submissions/${submissionId}/vote`, { vote: true })
+  const { data } = await api.patch(`/submissions/${submissionId}/vote`, { vote: true })
   return data.data 
 }
 
 export async function unvoteEntry(submissionId) {
-  const { data } = await api.delete(`/submissions/${submissionId}/vote`)
+  const { data } = await api.patch(`/submissions/${submissionId}/vote`, {vote: false })
+  return data.data
+}
+
+export async function reportEntry(submissionId, reason) {
+  const { data } = await api.post(`/submissions/${submissionId}/report`, { reason })
   return data.data
 }
 

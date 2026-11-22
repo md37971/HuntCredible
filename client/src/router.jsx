@@ -27,7 +27,7 @@ export const router = createBrowserRouter([
       { path: 'parties/:partyId', element: <PartyDetail /> },
       { path: 'sessions', element: <Session />},
       { path: 'ai', element: <AnimalDetector />},
-      { path: 'competition:competitionId', element: <CompetitionDetail />},
+      { path: 'competitions/:competitionId', element: <CompetitionDetail />},
       {
         path: 'competitions',
         element: <Competition />,

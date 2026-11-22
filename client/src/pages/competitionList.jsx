@@ -1,29 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import {
-  Alert, Badge, Card, Center, Group, Image, Loader, SegmentedControl, SimpleGrid, Stack, Text,
+  Alert, Badge, Card, Center, Group, Image, Loader, SimpleGrid, Stack, Text,
 } from '@mantine/core'
 import { errorMessage, getCompetitions, getMyCompetitions } from '../API/api.js'
-import { categoryOf, plural, statusOf, timeLabel } from '../data/competition.js'
-
-const FILTERS = [
-  { value: 'active', label: 'Open' },
-  { value: 'upcoming', label: 'Upcoming' },
-  { value: 'ended', label: 'Ended' },
-]
-
-const EMPTY = {
-  active: 'No competitions are open right now.',
-  upcoming: 'Nothing scheduled yet.',
-  ended: 'No past competitions yet.',
-}
+import { categoryOf, plural, timeLabel } from '../data/competition.js'
 
 export default function CompetitionList() {
   const [competitions, setCompetitions] = useState([])
   const [enteredIds, setEnteredIds] = useState(() => new Set())
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('active')
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
@@ -58,32 +45,12 @@ export default function CompetitionList() {
     return <Alert color="red" variant="light">{error}</Alert>
   }
 
-  const counts = { active: 0, upcoming: 0, ended: 0 }
-  competitions.forEach((c) => { counts[statusOf(c, now)] += 1 })
-
-  const showFilter = counts.upcoming > 0 || counts.ended > 0
-  const current = showFilter ? filter : 'active'
-
-  const shown = competitions
-    .filter((c) => statusOf(c, now) === current)
-    .sort((a, b) => {
-      if (current === 'active') return new Date(a.endDate) - new Date(b.endDate)
-      if (current === 'upcoming') return new Date(a.startDate) - new Date(b.startDate)
-      return new Date(b.endDate) - new Date(a.endDate)
-    })
+  // Ending soonest first
+  const shown = [...competitions].sort((a, b) => new Date(a.endDate) - new Date(b.endDate))
 
   return (
     <Stack>
-      {showFilter && (
-        <SegmentedControl
-          value={filter}
-          onChange={setFilter}
-          data={FILTERS.map((f) => ({ value: f.value, label: `${f.label} (${counts[f.value]})` }))}
-          w={{ base: '100%', xs: 'fit-content' }}
-        />
-      )}
-
-      {shown.length === 0 && <Text c="dimmed">{EMPTY[current]}</Text>}
+      {shown.length === 0 && <Text c="dimmed">No competitions are open right now.</Text>}
 
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         {shown.map((c) => (
@@ -101,7 +68,6 @@ export default function CompetitionList() {
 
 function CompetitionCard({ competition: c, entered, now }) {
   const category = categoryOf(c)
-  const status = statusOf(c, now)
 
   return (
     <Card
@@ -121,10 +87,7 @@ function CompetitionCard({ competition: c, entered, now }) {
         )}
       </Card.Section>
 
-      <Group justify="space-between" mt="md" wrap="nowrap" align="flex-start">
-        <Text fw={600} lineClamp={1}>{c.title}</Text>
-        {status !== 'active' && <Badge color="gray" variant="light" style={{ flexShrink: 0 }}>{status}</Badge>}
-      </Group>
+      <Text fw={600} lineClamp={1} mt="md">{c.title}</Text>
 
       {c.description && <Text size="sm" c="dimmed" lineClamp={2} mt={4}>{c.description}</Text>}
 

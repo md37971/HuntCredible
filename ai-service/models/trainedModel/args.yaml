@@ -4,7 +4,7 @@ model: yolo26n.pt
 data: combined_dataset/data.yaml
 epochs: 10
 time: null
-patience: 100
+patience: 5
 batch: 16
 imgsz: 640
 save: true
@@ -13,7 +13,7 @@ cache: false
 device: ""
 workers: 8
 project: null
-name: train-3
+name: train-4
 exist_ok: false
 pretrained: true
 cls_remap: true
@@ -111,4 +111,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: tracktrack.yaml
-save_dir: C:\Users\micha\OneDrive\Documents\githubPortfolios\learningNotes\PythonAI\softwareAIModel\Huntcredible\runs\detect\train-3
+save_dir: C:\Users\micha\OneDrive\Documents\githubPortfolios\learningNotes\PythonAI\softwareAIModel\Huntcredible\runs\detect\train-4

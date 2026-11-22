@@ -3,7 +3,7 @@ from fastapi import UploadFile
 from fastapi import File
 from fastapi import HTTPException
 from services.prediction_service import predictImage
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import io
 from exif import Image as exifImage
 from services.imageCoordinatesService import ImageCoordinates
@@ -38,10 +38,10 @@ async def predict_endpoint(file: UploadFile = File(...)):
         contents = await file.read(MAX_FILE_SIZE + 1)
 
         if not contents:
-            raise HTTPException(status_code=400, message="Empty file.")
+            raise HTTPException(status_code=400, detail="Empty file.")
 
         if len(contents) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, message="Image exceeds 15 MB limit.")
+            raise HTTPException(status_code=413, detail="Image exceeds 15 MB limit.")
 
         #Validate actual image contents and if format is valid.
         try:

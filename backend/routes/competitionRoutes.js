@@ -91,7 +91,6 @@ router.get("/competitions/:competitionId", async (req, res) => {
 });
 
 // POST /api/v1/competitions/:competitionId/submit - Submits a competitions photo
-
 router.post("/competitions/:competitionId/submit", (req, res, next) => {
     if (!req.session?.user) {
         return res.status(401).json({
@@ -234,11 +233,9 @@ router.post("/competitions/:competitionId/submit", (req, res, next) => {
             }
 
             // Check whether this user already submitted to this competition.
-            const existingSubmission = await getDb().collection("competitions").findOne({
-                _id: competitionObjectId,
-                submissions: {
-                    $elemMatch: { userId: userId }
-                }
+            const existingSubmission = await getDb().collection("userEntries").findOne({
+                competitionId: competitionObjectId,
+                userId: userId
             });
 
             if (existingSubmission) {
@@ -250,9 +247,9 @@ router.post("/competitions/:competitionId/submit", (req, res, next) => {
             }
 
             // Check for a duplicate submission ID.
-            const duplicateSubmission = await getDb().collection("competitions").findOne({
-                "submissions.clientSubmissionId": clientSubmissionId.trim()
-            });
+            const duplicateSubmission = await getDb().collection("userEntries").findOne({
+                clientSubmissionId: clientSubmissionId.trim()
+            }); 
 
             if (duplicateSubmission) {
                 return res.status(409).json({
@@ -288,7 +285,8 @@ router.post("/competitions/:competitionId/submit", (req, res, next) => {
 
             // Create submission object.
             const submission = {
-                submissionId: submissionId,
+                _id: submissionId,
+                competitionId: competitionObjectId,
                 userId: userId,
                 clientSubmissionId: clientSubmissionId.trim(),
 
@@ -306,32 +304,8 @@ router.post("/competitions/:competitionId/submit", (req, res, next) => {
                 pointsAwarded: 0
             };
 
-            // Add the submission directly to the competition document.
-            // This filter prevents the same user from submitting twice,
-            // even if two requests arrive at nearly the same time.
-            const result = await getDb().collection("competitions").updateOne(
-                {
-                    _id: competitionObjectId,
-                    submissions: {
-                        $not: {
-                            $elemMatch: { userId: userId }
-                        }
-                    }
-                },
-                {
-                    $push: {
-                        submissions: submission
-                    }
-                }
-            );
-
-            if (result.modifiedCount === 0) {
-                return res.status(409).json({
-                    statusCode: 409,
-                    statusMessage: "Conflict",
-                    content: { message: "You have already submitted to this competition" }
-                });
-            }
+            // Insert submission into userEntries collection
+            await getDb().collection("userEntries").insertOne(submission);
 
             return res.status(201).json({
                 success: true,
@@ -357,7 +331,6 @@ router.post("/competitions/:competitionId/submit", (req, res, next) => {
 );
 
 // GET /api/v1/competitions/:competitionId/submissions - Retrieves competition submissions
-
 router.get("/competitions/:competitionId/submissions", async (req, res) => {
     try {
         if (!req.session?.user) {
@@ -378,11 +351,12 @@ router.get("/competitions/:competitionId/submissions", async (req, res) => {
             });
         }
 
-        // Retrieve the competition and its submissions.
-        const competition = await getDb().collection("competitions").findOne(
-            { _id: new ObjectId(competitionId) },
-            { projection: { submissions: 1 } }
-        );
+        const competitionObjectId = new ObjectId(competitionId);
+
+        // Make sure the competition exists.
+        const competition = await getDb().collection("competitions").findOne({
+            _id: competitionObjectId
+        });
 
         if (!competition) {
             return res.status(404).json({
@@ -392,18 +366,12 @@ router.get("/competitions/:competitionId/submissions", async (req, res) => {
             });
         }
 
-        // Return submissions without the image binary.
-        const submissions = (competition.submissions ?? []).map(submission => ({
-            submissionId: submission.submissionId,
-            userId: submission.userId,
-            latitude: submission.latitude,
-            longitude: submission.longitude,
-            capturedAt: submission.capturedAt,
-            submittedAt: submission.submittedAt,
-            status: submission.status,
-            animalDetected: submission.animalDetected,
-            pointsAwarded: submission.pointsAwarded
-        }));
+        // Retrieve submissions from userEntries.
+        // Exclude image binary data from the response.
+        const submissions = await getDb().collection("userEntries")
+            .find({ competitionId: competitionObjectId })
+            .project({ image: 0 })
+            .toArray();
 
         return res.status(200).json({
             success: true,
@@ -420,5 +388,78 @@ router.get("/competitions/:competitionId/submissions", async (req, res) => {
         });
     }
 });
+
+// DELETE /api/v1/competitions/:competitionId/submissions/:submissionId - Deletes a competition submission (Admin only)
+router.delete("/competitions/:competitionId/submissions/:submissionId", (req, res, next) => {
+    // Check if user is logged in.
+    if (!req.session?.user) {
+        return res.status(401).json({
+            statusCode: 401,
+            statusMessage: "Unauthorized",
+            content: { message: "You must be logged in" }
+        });
+    }
+
+    // Check if user is an admin.
+    if (req.session.user.role !== "admin") {
+        return res.status(403).json({
+            statusCode: 403,
+            statusMessage: "Forbidden",
+            content: { message: "You do not have permission to delete competition submissions" }
+        });
+    }
+
+    next();
+},
+    async (req, res) => {
+        try {
+            const { competitionId, submissionId } = req.params;
+
+            // Validate IDs.
+            if (
+                !ObjectId.isValid(competitionId) ||
+                !ObjectId.isValid(submissionId)
+            ) {
+                return res.status(400).json({
+                    statusCode: 400,
+                    statusMessage: "Bad Request",
+                    content: { message: "Invalid competition or submission ID" }
+                });
+            }
+
+            const competitionObjectId = new ObjectId(competitionId);
+            const submissionObjectId = new ObjectId(submissionId);
+
+            // Find and delete the submission.
+            const result = await getDb().collection("userEntries").deleteOne({
+                _id: submissionObjectId,
+                competitionId: competitionObjectId
+            });
+
+            // Check if submission exists.
+            if (result.deletedCount === 0) {
+                return res.status(404).json({
+                    statusCode: 404,
+                    statusMessage: "Not Found",
+                    content: { message: "Competition submission not found" }
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                content: { message: "Competition submission deleted successfully" }
+            });
+
+        } catch (error) {
+            console.error("Error deleting competition submission:", error);
+
+            return res.status(500).json({
+                statusCode: 500,
+                statusMessage: "Internal Server Error",
+                content: { message: "Failed to delete competition submission" }
+            });
+        }
+    }
+);
 
 export default router;

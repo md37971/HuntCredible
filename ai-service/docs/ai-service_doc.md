@@ -203,6 +203,26 @@ From these results, we can say the following:
 - mAP50 (**86.53%**): Strong overall detection performance when using a 0.50 IoU threshold.
 - mAP50-95 (**69.47%**): Performance decreases when stricter bounding-box overlap requirements are applied. This suggests localization accuracy has room for improvement.
 
+### Defined Columns
+- **Precision:** Rate of the number of correctly detected images.
+- **Recall:** Rate of how many test images that the model was able to successfully detect.
+- **mAP50:** Measure of the model’s accuracy when the detection thresholds are lenient.
+    - **Note:** The “50” is the IoU threshold of 0.50
+- **mAP50-95:** Measure of the model’s accuracy when the detection threshold are stricter.
+    - **Note:** The  “50” and “95” are the IoU thresholds ranging of 0.50 to 0.95.
+
+### Animal Conclusions
+- **Bears:** Bears have the strongest consecutive precision, rate, and mAP50 predictions out of the entire classes. Test images were able to be identified and predicted correctly, even with strict threshold of IoU parameters. So submitting an image of a bear will almost always lead to a correct prediction.
+- **Boars:** Boars have an excellent precision, rate, and mAP50 rates, so the model would be able to accurately and correctly predict images of boars. There is a slight decrease in accuracy in IoU stricter thresholds, but still has a sufficient accuracy rate for boars for this threshold.
+- **Deers:** Deers have a good precision, recall, and mAP50 rate, so images of deers have a high rate of being detected and predicted correctly. On the downside, while a lenient IoU threshold of 0.50 was able to accurately detect 81% of deer images, a stricter threshold struggles as the 53% of images were accurately detected.
+- **Rabbits:** Rabbits have a perfect precision rate, a sufficient recall, and mAP50. So the model would be able to correctly detect images of rabbits in most cases. However, a stricter IoU threshold has a 58% accuracy rate, meaning that it struggles to clearly recognize rabbits if strict parameters are set.
+- **Squirrels:** Squirrels have a good precision rate, recall, and mAP50 rate, so the model can correctly and accurately images of predict squirrels in most cases. The model also recognizes squirrels sufficently in strict thresholds set with 70% for a IoU accuracy rate.
+
+### Suggested Conclusions
+These results suggest that all animal classes are almost always able to correctly identify and detect animals. When the IoU threshold have been set to a lenient parameter, the model remains accurate, which can help detect animals for images that are unclear in most cases.
+
+Unfortuately, the model struggles when the IoU threshold is set high. Bears have the strongest overall rate, boars and squirrels have a solid rate, and deers and rabbits have low rates.
+This means that unclear images to the model when the threshold is set to strict parameters results in the model struggling to identify animals sometimes.
 
 ## Failure Cases for the AI Model
 

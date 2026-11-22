@@ -496,7 +496,7 @@ function SubmitModal({ opened, onClose, competition, onSubmitted }) {
           inputWrapperOrder={['label', 'input', 'description']}
         />
 
-        <Text size="xs" c="dimmed">Your location is sent with the photo to verify the entry. It isn't shown to others.</Text>
+        <Text size="xs" c="dimmed">We'll verify your entry by asking for your location for this entry.</Text>
 
         {error && <Alert color="red" variant="light">{error}</Alert>}
 

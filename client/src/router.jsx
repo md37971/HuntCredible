@@ -10,6 +10,10 @@ import SessionLive from './pages/sessionLive.jsx'
 import SessionMap from './pages/sessionMap.jsx'
 import PartyChat from './pages/partyChat.jsx'
 import AnimalDetector from './pages/ai.jsx'
+import Competition from './pages/competition.jsx'
+import CompetitionDetail from './pages/competitionDetail.jsx'
+import CompetitionList from './pages/competitionList.jsx'
+import Leaderboard from './pages/leaderboard.jsx'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -23,6 +27,15 @@ export const router = createBrowserRouter([
       { path: 'parties/:partyId', element: <PartyDetail /> },
       { path: 'sessions', element: <Session />},
       { path: 'ai', element: <AnimalDetector />},
+      { path: 'competition:competitionId', element: <CompetitionDetail />},
+      {
+        path: 'competitions',
+        element: <Competition />,
+        children: [
+          { index: true, element: <CompetitionList />},
+          { path: 'leaderboard', element: <Leaderboard />},
+        ],
+      },
       {
         path: 'sessions/:partyId/:sessionId',
         element: <SessionLive />,

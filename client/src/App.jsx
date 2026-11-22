@@ -7,6 +7,7 @@ import UserMenu from './components/userMenu.jsx'
 
 const links = [
   { label: 'Home', to: '/' },
+  { label: 'Competitions', to: '/competitions'},
   { label: 'Parties', to: '/parties'},
   { label: 'Hunting Sessions', to: './sessions'},
   { label: 'Animal Detector', to: './ai'},

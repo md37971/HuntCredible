@@ -159,3 +159,76 @@ export async function identifyAnimal(file) {
   const { data } = await api.post('/submission', form, { timeout: 60000 })
   return data.content
 }
+//////////////// Competition Functions //////////////////
+
+const toEntry = (record) => {
+  const s = record.submission ?? {}
+  return {
+    _id: s.submissionId ?? record._id,
+    challengeId: record.challengeId,
+    userId: record.userId,
+    user: record.user ?? null, 
+    imageUrl: s.imageUrl ?? record.imageUrl ?? null,
+    caption: s.caption ?? record.caption ?? '',
+    status: s.status ?? record.status ?? null, 
+    createdAt: s.submittedAt ?? record.createdAt ?? null,
+    voteCount: s.voteCount ?? record.voteCount ?? 0,
+    userVoted: s.userVoted ?? record.userVoted ?? false,
+  }
+}
+
+export async function getCompetitions() {
+  const { data } = await api.get('/challenges')
+  return data.data
+}
+
+export async function getCompetition(competitionId) {
+  const { data } = await api.get(`/competition/${competitionId}`)
+  return data.data
+}
+
+export async function getMyCompetitions() {
+  const { data } = await api.get('/competition/me/entries')
+  return data.data
+}
+
+export async function getCompetitionEntries(competitionId) {
+  const { data } = await api.get(`/competition/${competitionId}/submissions`)
+  return data.data.map(toEntry)
+}
+
+export async function submitCompetitionEntry(competitionId, { image, caption, latitude, longitude, capturedAt }) {
+  const form = new FormData()
+  form.append('image', image)
+  if (caption) form.append('caption', caption)
+  form.append('latitude', latitude)
+  form.append('longitude', longitude)
+  form.append('capturedAt', capturedAt)
+  form.append('clientSubmissionId', crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
+  const { data } = await api.post(`/competition/${competitionId}/submit`, form)
+  return data.data
+}
+
+export async function voteEntry(submissionId) {
+  const { data } = await api.post(`/submissions/${submissionId}/vote`, { vote: true })
+  return data.data 
+}
+
+export async function unvoteEntry(submissionId) {
+  const { data } = await api.delete(`/submissions/${submissionId}/vote`)
+  return data.data
+}
+
+//////////////// Leaderboard Functions //////////////////
+
+export async function getLeaderboard({ page = 1, limit = 10 } = {}) {
+  const { data } = await api.get('/leaderboard', { params: { page, limit } })
+  return data.data 
+}
+
+export async function getMyRank() {
+  const { data } = await api.get('/leaderboard/me')
+  return data.data 
+}
+
+export const notBuiltYet = (err) => err.response?.status === 404 && !err.response?.data?.content

@@ -104,7 +104,7 @@ HuntCredible aims to encourage new users who are unfamiliar or have little exper
 
 ## Architecture
 
-<!-- Replace this section with your architecture diagram image, e.g. ![Architecture](docs/architecture.png) -->
+![Architecture Design](https://raw.githubusercontent.com/md37971/HuntCredible/779950d3b0f10d64e774853f8e0c3b0f32203462/documentation/architecture.png)
 
 ## Getting Started
 

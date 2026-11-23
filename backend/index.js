@@ -1,55 +1,8 @@
-import express from 'express';
-import dotenv from 'dotenv';
+import app from './app.js';
+import 'dotenv/config';
 import { connectDb } from './db.js';
-import session from 'express-session';
 
-//Importing Routers
-import authRouter from './routes/authRoutes.js';
-import exampleRouter from './routes/example.js'; //TEST ROUTE
-import submissionRouter from './routes/submissionRoutes.js';
-import partyRouter from './routes/partyRoutes.js'
-import sessionRoutes from './routes/sessionRoutes.js'
-import competitionRouter from './routes/competitionRoutes.js';
-import leaderboardRouter from './routes/leaderboardRoutes.js';
-
-dotenv.config();
-
-const app = express();
 const port = process.env.PORT || "5000";
-
-app.use(express.json());
-const BASE_URL = "/api/v1";
-
-
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'temporary-development-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        httpOnly: true,
-        secure: false, // Local HTTP development only
-        maxAge: 1000 * 60 * 60
-    }
-}));
-
-
-//Health Check
-app.get(`${BASE_URL}/health`, (req, res) => {
-    res.status(200).json({ 
-        status: 'OK',
-        message: 'API IS UP AND RUNNING',
-        timestamp: new Date()
-    });
-});
-
-//localhost:5000/api/v1/...
-app.use(`${BASE_URL}/auth`, authRouter);
-app.use(`${BASE_URL}/example`, exampleRouter); //TEST ROUTE
-app.use(`${BASE_URL}/submission`, submissionRouter);
-app.use(`${BASE_URL}/parties`, partyRouter);
-app.use(BASE_URL, sessionRoutes);
-app.use(BASE_URL, competitionRouter);
-app.use(BASE_URL, leaderboardRouter);
 
 // Starting connection
 async function startServer() {

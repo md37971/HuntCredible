@@ -10,6 +10,7 @@ import submissionRouter from './routes/submissionRoutes.js';
 import partyRouter from './routes/partyRoutes.js'
 import sessionRoutes from './routes/sessionRoutes.js'
 import competitionRouter from './routes/competitionRoutes.js';
+import leaderboardRouter from './routes/leaderboardRoutes.js';
 
 dotenv.config();
 
@@ -48,6 +49,7 @@ app.use(`${BASE_URL}/submission`, submissionRouter);
 app.use(`${BASE_URL}/parties`, partyRouter);
 app.use(BASE_URL, sessionRoutes);
 app.use(BASE_URL, competitionRouter);
+app.use(BASE_URL, leaderboardRouter);
 
 // Starting connection
 async function startServer() {

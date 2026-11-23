@@ -301,6 +301,26 @@ Run these from the project root (where `docker-compose.yml` lives).
       <td>IndexedDB</td>
       <td>Offline caching in the browser</td>
     </tr>
+    <tr>
+      <td>Multer</td>
+      <td>Uploads image to express middleware</td>
+    </tr>
+    <tr>
+      <td>Sharp</td>
+      <td>Used for image compressoin</td>
+    </tr>
+    <tr>
+      <td>Axios</td>
+      <td>Make HTTP requests for external services</td>
+    </tr>
+    <tr>
+      <td>Bycrypt</td>
+      <td>Hashed passwords to protect user credentials</td>
+    </tr>
+    <tr>
+      <td>Express-session</td>
+      <td>Manage user sessions and maintains authentication state</td>
+    </tr>
   </tbody>
 </table>
 
@@ -392,7 +412,38 @@ Run these from the project root (where `docker-compose.yml` lives).
 </details>
 
 <details>
-<summary>AI service <code>requirements.txt</code></summary>
+<summary>Backend <code>package.json</code></summary>
+
+```json
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon --legacy-watch index.js"
+  },
+  "keywords": [],
+  "dependencies": {
+    "axios": "^1.21.1",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0",
+    "mongodb": "^7.8.0",
+    "multer": "^2.5.0",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+```
+</details>
+
+AI service <code>requirements.txt</code>
 
 ```text
 fastapi

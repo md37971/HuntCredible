@@ -21,7 +21,7 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const now = new Date();
-    const user = { email, passwordHash, firstName, lastName, role: 'user', createdAt: now };
+    const user = { email, passwordHash, firstName, lastName, role: 'user', points: 0, createdAt: now };
     const { insertedId } = await users.insertOne(user);
     res.status(201).json({ statusCode: 201, statusMessage: "Created", content: { user: sessionUser({ ...user, _id: insertedId }) } })
 });

@@ -730,7 +730,7 @@ router.post("/submissions/:submissionId/report", async (req, res) => {
     }
 });
 
-// GET /api/v1/admin/reports - Lists every entry that has been reported (Admin only)
+// GET /api/v1/admin/reports - Lists every entry that has been reported
 router.get("/admin/reports", (req, res, next) => {
     if (!req.session?.user) {
         return res.status(401).json({
@@ -773,7 +773,6 @@ router.get("/admin/reports", (req, res, next) => {
 
             const usersById = new Map(users.map((user) => [String(user._id), user]));
 
-            // Look up each entry's competition title in one query.
             const competitionIds = [...new Set(entries.map((entry) => String(entry.competitionId)))]
                 .filter((id) => ObjectId.isValid(id))
                 .map((id) => new ObjectId(id));
@@ -816,7 +815,7 @@ router.get("/admin/reports", (req, res, next) => {
     }
 );
 
-// PATCH /api/v1/admin/reports/:submissionId/dismiss - Clears an entry's reports, keeping the entry (Admin only)
+// PATCH /api/v1/admin/reports/:submissionId/dismiss - Clears an entry's reports, keeping the entry
 router.patch("/admin/reports/:submissionId/dismiss", (req, res, next) => {
     if (!req.session?.user) {
         return res.status(401).json({

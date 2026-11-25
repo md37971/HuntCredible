@@ -7,13 +7,19 @@ const router = express.Router();
 // GET /leaderboard - Retrieve global leaderboard
 router.get('/leaderboard', async (req, res) => {
     try {
+        if (!req.session.user) {
+            return res.status(401).json({ message: 'Not logged in' });
+        }
+
         const page = Math.max(1, Number(req.query.page) || 1);
         const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
         const skip = (page - 1) * limit;
 
+        const ranked = { points: { $gt: 0 }, role: { $ne: 'admin' } };
+
         const users = await getDb().collection('users')
-            .find({})
-            .sort({ points: -1 })
+            .find(ranked)
+            .sort({ points: -1, _id: 1 })
             .skip(skip)
             .limit(limit)
             .project({
@@ -23,10 +29,13 @@ router.get('/leaderboard', async (req, res) => {
             })
             .toArray();
 
-        let currentRank = skip;
+        let currentRank = users.length === 0 ? 0 : await getDb().collection('users').countDocuments({
+            ...ranked,
+            points: { $gt: users[0].points }
+        }) + 1;
 
         const leaderboard = users.map((user, index) => {
-            if (index === 0 || user.points !== users[index - 1].points) {
+            if (index > 0 && user.points !== users[index - 1].points) {
                 currentRank = skip + index + 1;
             }
 
@@ -65,9 +74,13 @@ router.get('/leaderboard/me', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const rank = await getDb().collection('users').countDocuments({
-            points: { $gt: user.points ?? 0 }
-        }) + 1;
+        const points = user.points ?? 0;
+        const rank = points > 0 && user.role !== 'admin'
+            ? await getDb().collection('users').countDocuments({
+                points: { $gt: points },
+                role: { $ne: 'admin' }
+            }) + 1
+            : null;
 
         res.json({
             success: true,

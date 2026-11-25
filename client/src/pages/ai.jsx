@@ -81,6 +81,8 @@ export default function AnimalDetector() {
           <List spacing="xs" size="sm">
             <List.Item>Get as close as you safely can, so the animal fills the frame.</List.Item>
             <List.Item>Please limit submissions to only one animal in frame.</List.Item>
+            <List.Item>Supports formats for JPG, JPEG, PNG, WEBP, HEIC, and HEIF.</List.Item>
+            <List.Item>Dimensions must be at least 640 x 480 pixels or 480 x 640 pixels.</List.Item>
           </List>
 
           {/* Mobile */}

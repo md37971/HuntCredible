@@ -27,14 +27,13 @@ router.post('/', upload.single('image'), async (req, res) => {
         });
 
     } catch (error) {
-        //console.error('AI service error:', error.message);
-        console.error('AI service error:', error.response?.data || error.message);
+        //console.error('AI service error:', error.response?.data || error.message);
 
         res.status(502).json({
             statusCode: 502,
             statusMessage: 'Bad Gateway',
             content: {
-                message: 'Unable to process image through the AI service.'
+                message: error.response?.data?.detail || 'Unable to process the uploaded image.'
             }
         });
     }

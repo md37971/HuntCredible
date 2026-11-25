@@ -1,6 +1,6 @@
 task: detect
 mode: train
-model: yolo26n.pt
+model: runs/detect/train-4/weights/best.pt
 data: combined_dataset/data.yaml
 epochs: 10
 time: null
@@ -13,7 +13,7 @@ cache: false
 device: ""
 workers: 8
 project: null
-name: train-4
+name: train-5
 exist_ok: false
 pretrained: true
 cls_remap: true
@@ -111,4 +111,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: tracktrack.yaml
-save_dir: C:\Users\micha\OneDrive\Documents\githubPortfolios\learningNotes\PythonAI\softwareAIModel\Huntcredible\runs\detect\train-4
+save_dir: C:\Users\micha\OneDrive\Documents\githubPortfolios\learningNotes\PythonAI\softwareAIModel\Huntcredible\runs\detect\train-5

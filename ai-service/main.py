@@ -3,10 +3,11 @@ from fastapi import UploadFile
 from fastapi import File
 from fastapi import HTTPException
 from services.prediction_service import predictImage
+from services.footprintPrediction_service import scanFootprints
 from PIL import Image, UnidentifiedImageError
 import io
 from exif import Image as exifImage
-from services.imageCoordinatesService import ImageCoordinates
+
 
 app = FastAPI()
 #Runs Uvicorn server on Port 8000. Link: http://127.0.0.1:8000/
@@ -66,23 +67,11 @@ async def predict_endpoint(file: UploadFile = File(...)):
 
         try:
             detections = predictImage(image)
-            coordinateResult = ImageCoordinates(contents)
-            coordinates = coordinateResult.getCoordinates()
-
-            if(MUST_HAVE_COORDS):
-                if ((coordinates is None) or (coordinates[0] == 0 and coordinates[1] == 0)):
-                    return {
-                        "success": False,
-                        "detections": None,
-                        "coordinates": None,
-                        "message": "Image does not contain GPS coordinates. Please ensure the image has GPS metadata."
-                    }
 
             if not detections: #No animals detected.
                 return {
                   "success": False,
                   "detections": None,
-                  "coordinates": coordinates,
                   "message": "No animals detected in the image or animals were unclear in the image."
                 }
 
@@ -90,7 +79,6 @@ async def predict_endpoint(file: UploadFile = File(...)):
                return {
                  "success": False,
                  "detections": None,
-                 "coordinates": coordinates,
                  "message": "Multiple animals detected. Only one animal is allowed per image."
                }
 
@@ -98,7 +86,6 @@ async def predict_endpoint(file: UploadFile = File(...)):
               return {
                 "success": True,
                 "detections": detections,
-                "coordinates": coordinates,
                 "message": "An animal has been detected in the image."
               }
 
@@ -107,3 +94,71 @@ async def predict_endpoint(file: UploadFile = File(...)):
                 status_code=400,
                 detail=f"An error occurred during prediction: {str(e)}"
             )
+
+@app.post("/predictFootprint") #Predict an animal's footprint
+async def predict_endpoint(file: UploadFile = File(...)):
+    #Check if the uploaded file is an imag
+    if (file.content_type not in ALLOWED_EXTENSIONS) and (not file.content_type == "application/octet-stream"):
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file must be an image in these formats: JPG, JPEG, PNG, WEBP, HEIC, or HEIF."
+        )
+
+    contents = await file.read(MAX_FILE_SIZE + 1)
+
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty file.")
+
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="Image exceeds 15 MB limit.")
+
+    #Validate actual image contents and if format is valid.
+    try:
+        with Image.open(io.BytesIO(contents)) as uploaded_image:
+            """
+            width, height = uploaded_image.size
+            if(min(width, height) < 480 or max(width, height) < 640):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Image must be {MINIMUM_WIDTH} x {MINIMUM_HEIGHT} OR {MINIMUM_HEIGHT} x {MINIMUM_WIDTH} pixels."
+                )
+            """
+
+            uploaded_image.load()
+            image = uploaded_image.convert("RGB")
+
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or corrupted image."
+        )   
+
+    try:
+        detections = scanFootprints(image)
+
+        if not detections: #No animals detected.
+            return {
+              "success": False,
+              "detections": None,
+              "message": "No footprints have been detected in this image."
+            }
+        
+        if(detections == "STOP"):
+            return {
+              "success": False,
+              "detections": None,
+              "message": "Multiple types of footprints detected. Only one type of footprint is allowed per image."
+            }
+
+        return {
+            "success": True,
+            "detection": detections,
+            "message": "Footprints have been detected in this image."
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An error occurred during prediction: {str(e)}"
+        )
+

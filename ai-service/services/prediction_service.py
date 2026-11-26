@@ -36,7 +36,7 @@ def predictImage(imageURL):
 
 #MAIN CODE
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "trainedModel", "weights", "best.pt")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "animalModel", "weights", "best.pt")
 
 if not os.path.isfile(MODEL_PATH):
     raise RuntimeError(f"AI model file not found at {MODEL_PATH}")

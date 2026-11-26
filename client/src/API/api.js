@@ -156,7 +156,7 @@ export async function deleteMessage(messageId) {
 export async function identifyAnimal(file) {
   const form = new FormData()
   form.append('image', file)
-  const { data } = await api.post('/submission', form, { timeout: 60000 })
+  const { data } = await api.post('/submission/animal', form, { timeout: 60000 })
   return data.content
 }
 //////////////// Competition Functions //////////////////

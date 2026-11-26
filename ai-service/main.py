@@ -16,6 +16,8 @@ MUST_HAVE_COORDS = False  #Set to True if coordinates are required, False otherw
 MAX_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
 ALLOWED_EXTENSIONS = {"image/jpg", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 ALLOWED_FORMATS = {"JPG","JPEG","PNG","WEBP","HEIC","HEIF"}
+MINIMUM_HEIGHT = 480
+MINIMUM_WIDTH = 640
 
 @app.get("/") #Root endpoint
 def read_root():
@@ -31,7 +33,7 @@ async def predict_endpoint(file: UploadFile = File(...)):
         if (file.content_type not in ALLOWED_EXTENSIONS) and (not file.content_type == "application/octet-stream"):
             raise HTTPException(
                 status_code=400,
-                detail="Uploaded file must be an image that supports the types: jpg, jpeg, png, webp, heic, heif"
+                detail="Uploaded file must be an image in these formats: JPG, JPEG, PNG, WEBP, HEIC, or HEIF."
             )
 
         #Read the file contents and check the size
@@ -46,11 +48,11 @@ async def predict_endpoint(file: UploadFile = File(...)):
         #Validate actual image contents and if format is valid.
         try:
             with Image.open(io.BytesIO(contents)) as uploaded_image:
-
-                if uploaded_image.format not in ALLOWED_FORMATS:
+                width, height = uploaded_image.size
+                if(min(width, height) < 480 or max(width, height) < 640):
                     raise HTTPException(
                         status_code=400,
-                        detail="Unsupported image format."
+                        detail=f"Image must be {MINIMUM_WIDTH} x {MINIMUM_HEIGHT} OR {MINIMUM_HEIGHT} x {MINIMUM_WIDTH} pixels."
                     )
 
                 uploaded_image.load()

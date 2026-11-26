@@ -18,7 +18,7 @@ const upload = multer({
             cb(null, true);
         } else {
             cb(new Error(
-                'Images must be in jpeg, png, webp, heic, or heif format'
+                'Uploaded file must be an image in these formats: JPG, JPEG, PNG, WEBP, HEIC, or HEIF.'
             ));
         }
     }

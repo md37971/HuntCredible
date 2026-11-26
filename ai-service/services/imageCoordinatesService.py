@@ -8,7 +8,7 @@ class ImageCoordinates:
         try:
             self.image = exifImage(io.BytesIO(contents))
         except Exception as e:
-            print(f"EXIF parsing error: {e}")
+            #print(f"EXIF parsing error: {e}")
             self.image = None
         
 
